@@ -51,6 +51,26 @@ window.showToast = function(message, type = "info") {
   }, 3500);
 };
 
+// --- Khmer Date & Number Formatter Helpers ---
+const KHMER_DIGITS = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+const KHMER_DAYS = ['អាទិត្យ', 'ច័ន្ទ', 'អង្គារ', 'ពុធ', 'ព្រហស្បតិ៍', 'សុក្រ', 'សៅរ៍'];
+const KHMER_MONTHS = [
+  'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា',
+  'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'
+];
+
+function toKhmerDigits(num) {
+  return String(num).replace(/[0-9]/g, d => KHMER_DIGITS[d]);
+}
+
+function formatKhmerFullDate(date = new Date()) {
+  const dayName = KHMER_DAYS[date.getDay()];
+  const day = toKhmerDigits(date.getDate());
+  const month = KHMER_MONTHS[date.getMonth()];
+  const year = toKhmerDigits(date.getFullYear());
+  return `ថ្ងៃ${dayName} ទី${day} ខែ${month} ឆ្នាំ${year}`;
+}
+
 // --- Auth & API Request Helpers ---
 async function apiRequest(url, options = {}) {
   const token = localStorage.getItem("access_token");
@@ -1495,7 +1515,7 @@ function renderLogsTable() {
         formattedTime = `${pad(h12)}:${pad(mm)}:${pad(ss)} ${period}`;
       } else {
         const dateObj = new Date(dateStr);
-        formattedDate = dateObj.toLocaleDateString("km-KH", { year: "numeric", month: "short", day: "numeric" });
+        formattedDate = `${toKhmerDigits(dateObj.getDate())} ${KHMER_MONTHS[dateObj.getMonth()]} ${toKhmerDigits(dateObj.getFullYear())}`;
         formattedTime = dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
       }
     } catch (e) {
@@ -1866,10 +1886,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Display Current Date in Khmer in Topbar
   const dateEl = document.getElementById("current-date-text");
   if (dateEl) {
-    const today = new Date();
-    dateEl.textContent = today.toLocaleDateString("km-KH", {
-      weekday: "long", year: "numeric", month: "long", day: "numeric"
-    });
+    dateEl.textContent = formatKhmerFullDate(new Date());
   }
 
   // Load Dashboard by default

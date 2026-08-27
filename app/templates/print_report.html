@@ -92,9 +92,11 @@
   </div>
 
   <script>
-    document.getElementById("print-date").textContent = new Date().toLocaleDateString("km-KH", {
-      year: "numeric", month: "long", day: "numeric"
-    });
+    const khmerDigits = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+    const khmerMonths = ['មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា', 'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'];
+    const toKh = n => String(n).replace(/[0-9]/g, d => khmerDigits[d]);
+    const now = new Date();
+    document.getElementById("print-date").textContent = `${toKh(now.getDate())} ខែ${khmerMonths[now.getMonth()]} ឆ្នាំ${toKh(now.getFullYear())}`;
 
     async function loadPrintData() {
       try {
