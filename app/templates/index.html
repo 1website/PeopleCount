@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="km">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ប្រព័ន្ធគ្រប់គ្រងស្ថិតិប្រជាជន និងគ្រួសារកម្ពុជា</title>
+  <meta name="description"
+    content="ប្រព័ន្ធគ្រប់គ្រងរដ្ឋបាលភូមិសាស្ត្រ ព័ត៌មានគ្រួសារ ចុះបញ្ជីសមាជិក របាយការណ៍ស្វ័យប្រវត្តិតាមស្តង់ដាររដ្ឋបាលកម្ពុជា និង Offline PWA" />
+
+  <!-- PWA Manifest & Icons -->
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="/static/icons/icon-192.svg" />
+  <meta name="theme-color" content="#1e3a8a" />
+
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+
+<body>
+
+  <div class="app-layout">
+    <!-- LEFT SIDEBAR WITH THE 5 FUNCTIONS -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-section">
+          <div class="brand-logo">
+            <img src="/static/icons/icon-192.svg" alt="Cambodia Emblem" />
+          </div>
+          <div class="brand-text">
+            <h1>
+              ស្ថិតិប្រជាជន
+              <span class="badge-kh">កម្ពុជា</span>
+            </h1>
+            <p>ប្រព័ន្ធគ្រប់គ្រងស្ថិតិគ្រួសារ</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- The 5 Core Functions Navigation on the Left -->
+      <div class="sidebar-section-title" id="sidebar-menu-title">
+        <i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៦
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-tab="dashboard" id="nav-item-dashboard">
+          <div class="nav-icon"><i class="fa-solid fa-chart-pie"></i></div>
+          <div class="nav-label">
+            <span class="nav-title">១. ផ្ទាំងគ្រប់គ្រងស្ថិតិ</span>
+            <span class="nav-sub">Dashboard & KPIs</span>
+          </div>
+        </a>
+
+        <a class="nav-item" data-tab="registration" id="nav-item-registration">
+          <div class="nav-icon"><i class="fa-solid fa-user-plus"></i></div>
+          <div class="nav-label">
+            <span class="nav-title">២. ចុះឈ្មោះគ្រួសារ</span>
+            <span class="nav-sub">Registration & Members</span>
+          </div>
+        </a>
+
+        <a class="nav-item" data-tab="families" id="nav-item-families">
+          <div class="nav-icon"><i class="fa-solid fa-address-book"></i></div>
+          <div class="nav-label">
+            <span class="nav-title">៣. បញ្ជីគ្រួសារ និងពិនិត្យ</span>
+            <span class="nav-sub">Directory & Review</span>
+          </div>
+        </a>
+
+        <a class="nav-item" data-tab="geo" id="nav-item-geo">
+          <div class="nav-icon"><i class="fa-solid fa-sitemap"></i></div>
+          <div class="nav-label">
+            <span class="nav-title">៤. រដ្ឋបាលភូមិសាស្ត្រ</span>
+            <span class="nav-sub">4-Level Hierarchy</span>
+          </div>
+        </a>
+
+        <a class="nav-item" data-tab="reports" id="nav-item-reports">
+          <div class="nav-icon"><i class="fa-solid fa-file-excel"></i></div>
+          <div class="nav-label">
+            <span class="nav-title">៥. របាយការណ៍ & នាំចេញ</span>
+            <span class="nav-sub">Excel & Print Forms</span>
+          </div>
+        </a>
+
+        <a class="nav-item" data-tab="users" id="nav-item-users">
+          <div class="nav-icon"><i class="fa-solid fa-users-gear"></i></div>
+          <div class="nav-label">
+            <span class="nav-title">៦. គ្រប់គ្រងអ្នកប្រើប្រាស់</span>
+            <span class="nav-sub">Admin & User Roles</span>
+          </div>
+        </a>
+      </nav>
+
+      <!-- Sidebar Bottom Status & User Profile -->
+      <div class="sidebar-footer">
+        <div id="network-status-badge" class="status-badge online"
+          style="width: 100%; justify-content: center; margin-bottom: 0.5rem;">
+          <span class="dot"></span> Online (ភ្ជាប់អ៊ីនធឺណិត)
+        </div>
+
+        <button id="btn-manual-sync" class="btn btn-outline btn-sm sync-btn-sidebar"
+          title="ធ្វើសមកាលកម្មទិន្នន័យក្រៅបណ្តាញ" disabled style="width: 100%; margin-bottom: 0.65rem;">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>ធ្វើសមកាលកម្ម (<span id="sync-count-badge"
+              style="display: none; background: #f59e0b; color: #000; border-radius: 999px; padding: 0 5px; font-weight: 700;">0</span>)</span>
+        </button>
+
+        <div id="sidebar-user-section" style="display: flex; flex-direction: column; gap: 0.4rem; width: 100%;">
+          <div id="user-profile-pill" class="user-pill" title="គណនីបច្ចុប្បន្ន"
+            style="width: 100%; justify-content: flex-start;">
+            <div class="user-avatar" id="sidebar-avatar"><i class="fa-solid fa-user"></i></div>
+            <span class="user-name-text" id="sidebar-username"
+              style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">កំពុងផ្ទុក...</span>
+          </div>
+          <button type="button" id="btn-sidebar-logout" class="btn btn-sm btn-outline"
+            style="width: 100%; color: #f87171; border-color: rgba(239, 68, 68, 0.35);">
+            <i class="fa-solid fa-right-from-bracket"></i> ចាកចេញ (Logout)
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN WRAPPER (TOPBAR + CONTENT) -->
+    <div class="app-main-wrapper">
+      <!-- Topbar with page title and toggle -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="btn-sidebar-toggle" class="btn-sidebar-toggle" title="បើក/បិទ ម៉ឺនុយខាងឆ្វេង">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <h2 id="topbar-page-title" class="topbar-title">
+            <i class="fa-solid fa-chart-pie" style="color: var(--gold-light); margin-right: 8px;"></i>
+            ផ្ទាំងគ្រប់គ្រងស្ថិតិប្រជាជន និងគ្រួសារកម្ពុជា
+          </h2>
+        </div>
+
+        <div class="topbar-right" style="display: flex; align-items: center; gap: 0.65rem;">
+          <span class="system-time-badge" id="system-time-display">
+            <i class="fa-solid fa-calendar-check" style="color: #60a5fa;"></i>
+            <span id="current-date-text">កាលបរិច្ឆេទ...</span>
+          </span>
+
+          <button type="button" id="btn-topbar-logout" class="btn btn-sm btn-outline"
+            style="color: #f87171; border-color: rgba(239, 68, 68, 0.4);" title="ចាកចេញពីប្រព័ន្ធ">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span class="hide-mobile" style="margin-left: 4px;">ចាកចេញ</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Content Body -->
+      <main class="main-content">
+
+        <!-- 1. DASHBOARD TAB -->
+        <section id="view-dashboard" class="view-section active">
+          <!-- Single Village Locality Banner (ភូមិប្រាសាទត្រាវ នៃឃុំគោកដូង) -->
+          <div class="filter-bar"
+            style="background: linear-gradient(90deg, rgba(30, 58, 138, 0.35), rgba(245, 158, 11, 0.1)); border-left: 4px solid var(--gold);">
+            <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+              <div
+                style="width: 38px; height: 38px; border-radius: 8px; background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; color: var(--gold-light); font-size: 1.15rem;">
+                <i class="fa-solid fa-location-dot"></i>
+              </div>
+              <div>
+                <div
+                  style="font-size: 1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                  <span>ដែនសមត្ថកិច្ចគោលដៅ៖ <strong>ភូមិប្រាសាទត្រាវ នៃឃុំគោកដូង</strong></span>
+                  <span class="badge-tag approved" style="font-size: 0.72rem; font-family: monospace;">កូដភូមិ:
+                    17010312</span>
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">
+                  <i class="fa-solid fa-map" style="color: #60a5fa; margin-right: 4px;"></i> ស្រុកអង្គរជុំ ខេត្តសៀមរាប •
+                  ប្រព័ន្ធស្ថិតិប្រជាជន និងគ្រួសារមូលដ្ឋានតែមួយ
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-sm btn-gold btn-trigger-register-modal"
+                title="បើកផ្ទាំងចុះឈ្មោះគ្រួសារ">
+                <i class="fa-solid fa-plus-circle"></i> + ចុះឈ្មោះគ្រួសារ
+              </button>
+              <a href="/api/reports/export/excel" class="btn btn-sm btn-primary" target="_blank"
+                title="នាំចេញរបាយការណ៍ជា Excel">
+                <i class="fa-solid fa-file-excel"></i> Excel Report
+              </a>
+              <a href="/print" class="btn btn-sm btn-outline" target="_blank" title="បោះពុម្ពសៀវភៅស្ថិតិ">
+                <i class="fa-solid fa-print"></i> បោះពុម្ពទម្រង់រដ្ឋបាល
+              </a>
+            </div>
+          </div>
+
+          <!-- 5 Key KPI Metric Cards -->
+          <div class="kpi-grid">
+            <!-- Total Families -->
+            <div class="card kpi-card blue">
+              <div class="kpi-header">
+                <span class="kpi-title">ចំនួនគ្រួសារសរុប</span>
+                <div class="kpi-icon"><i class="fa-solid fa-house-chimney"></i></div>
+              </div>
+              <div id="kpi-families-total" class="kpi-value">0</div>
+              <div class="kpi-sub">
+                <span>ក្រ១: <strong id="kpi-poor1-count" style="color: #f87171;">0</strong></span> •
+                <span>ក្រ២: <strong id="kpi-poor2-count" style="color: #fbbf24;">0</strong></span> •
+                <span>ទូទៅ: <strong id="kpi-general-count" style="color: #93c5fd;">0</strong></span>
+              </div>
+            </div>
+
+            <!-- Demographics Population -->
+            <div class="card kpi-card green">
+              <div class="kpi-header">
+                <span class="kpi-title">ប្រជាជនសរុប (ស្រី/ប្រុស)</span>
+                <div class="kpi-icon"><i class="fa-solid fa-users"></i></div>
+              </div>
+              <div id="kpi-pop-total" class="kpi-value">0</div>
+              <div class="kpi-sub">
+                <span>ស្រី: <strong id="kpi-female-count" style="color: #f472b6;">0</strong> (<span
+                    id="kpi-female-pct">0%</span>)</span> •
+                <span>ប្រុស: <strong id="kpi-male-count" style="color: #60a5fa;">0</strong></span>
+              </div>
+            </div>
+
+            <!-- Birth Certificates -->
+            <div class="card kpi-card gold">
+              <div class="kpi-header">
+                <span class="kpi-title">អត្រាមានសំបុត្រកំណើត</span>
+                <div class="kpi-icon"><i class="fa-solid fa-id-card"></i></div>
+              </div>
+              <div id="kpi-birthcert-pct" class="kpi-value">0%</div>
+              <div class="kpi-sub">
+                <span>មាន: <strong id="kpi-birthcert-have" style="color: #34d399;">0</strong> នាក់</span> •
+                <span>គ្មាន: <strong id="kpi-birthcert-none" style="color: #fb7185;">0</strong> នាក់</span>
+              </div>
+            </div>
+
+            <!-- School Age Children -->
+            <div class="card kpi-card purple">
+              <div class="kpi-header">
+                <span class="kpi-title">កុមារដល់អាយុចូលរៀន</span>
+                <div class="kpi-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+              </div>
+              <div id="kpi-school-age" class="kpi-value">0</div>
+              <div class="kpi-sub">
+                <span>ទារកអាយុ ០ ឆ្នាំ: <strong id="kpi-infants-0" style="color: #38bdf8;">0</strong> នាក់</span> •
+                <span>វ័យសិក្សា: <strong id="kpi-school-age-sub" style="color: #a78bfa;">0</strong> នាក់</span>
+              </div>
+            </div>
+
+            <!-- Dropout Rate -->
+            <div class="card kpi-card rose">
+              <div class="kpi-header">
+                <span class="kpi-title">អត្រាបោះបង់ការសិក្សា</span>
+                <div class="kpi-icon"><i class="fa-solid fa-user-xmark"></i></div>
+              </div>
+              <div id="kpi-dropout-rate" class="kpi-value">0%</div>
+              <div class="kpi-sub">
+                <span>បោះបង់: <strong id="kpi-dropouts-count" style="color: #fb7185;">0</strong> នាក់</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts & Visual Indicators Grid -->
+          <div class="charts-grid">
+            <!-- Visual Bars -->
+            <div class="card">
+              <div class="chart-card-title">
+                <span><i class="fa-solid fa-chart-column" style="color: #60a5fa; margin-right: 6px;"></i> សមាមាត្រភេទ
+                  និងឯកសាររដ្ឋបាល</span>
+              </div>
+
+              <div class="stat-bar-group">
+                <div class="stat-bar-label">
+                  <span>សមាមាត្រភេទ (ស្រី / ប្រុស)</span>
+                  <span id="gender-ratio-text">ស្រី: 50% | ប្រុស: 50%</span>
+                </div>
+                <div class="progress-track">
+                  <div id="progress-gender-bar" class="progress-fill fill-pink" style="width: 50%;"></div>
+                </div>
+              </div>
+
+              <div class="stat-bar-group" style="margin-top: 1.5rem;">
+                <div class="stat-bar-label">
+                  <span>ស្ថានភាពសំបុត្រកំណើត (មានសំបុត្រកំណើត)</span>
+                  <span style="color: #34d399;"><i class="fa-solid fa-circle-check"></i> បញ្ជាក់អត្តសញ្ញាណ</span>
+                </div>
+                <div class="progress-track">
+                  <div id="progress-birthcert-bar" class="progress-fill fill-green" style="width: 80%;"></div>
+                </div>
+              </div>
+
+              <div class="stat-bar-group" style="margin-top: 1.5rem;">
+                <div class="stat-bar-label">
+                  <span>អត្រាបោះបង់ការសិក្សាធៀបនឹងកុមារសរុប</span>
+                  <span style="color: #fb7185;"><i class="fa-solid fa-triangle-exclamation"></i> ត្រូវតាមដាន</span>
+                </div>
+                <div class="progress-track">
+                  <div id="progress-dropout-bar" class="progress-fill fill-rose" style="width: 15%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- School Attendance Breakdown by Age Categories -->
+            <div class="card">
+              <div class="chart-card-title">
+                <span><i class="fa-solid fa-school" style="color: #fbbf24; margin-right: 6px;"></i>
+                  ចំណាត់ថ្នាក់កុមារតាមវ័យសិក្សា</span>
+              </div>
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>កម្រិតវ័យសិក្សា</th>
+                      <th style="text-align: right;">ចំនួនកុមារ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="table-edu-breakdown">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+
+              <h4 style="font-size: 0.9rem; margin-top: 1.25rem; margin-bottom: 0.5rem; color: #fb7185;">
+                <i class="fa-solid fa-circle-exclamation"></i> បែងចែកការបោះបង់ការសិក្សាតាមកម្រិតថ្នាក់
+              </h4>
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <tbody id="table-dropouts-breakdown">
+                    <!-- Populated via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. FAMILY REGISTRATION & MEMBER ENTRY (LAUNCHER VIEW) -->
+        <section id="view-registration" class="view-section">
+          <div class="card" style="max-width: 900px; margin: 0 auto; text-align: center; padding: 2.5rem 1.5rem;">
+            <div
+              style="width: 64px; height: 64px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); color: var(--gold-light); display: inline-flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1.25rem;">
+              <i class="fa-solid fa-house-user"></i>
+            </div>
+            <h2 style="font-size: 1.45rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+              ចុះឈ្មោះគ្រួសារ និងបញ្ចូលសមាជិក (ភូមិប្រាសាទត្រាវ)
+            </h2>
+            <p
+              style="font-size: 0.92rem; color: var(--text-muted); max-width: 620px; margin: 0 auto 1.75rem auto; line-height: 1.6;">
+              ទម្រង់ចុះឈ្មោះបែប Popup Modal ងាយស្រួលប្រើប្រាស់លើទូរស័ព្ទដៃ (Mobile View) និងកុំព្យូទ័រ ជាមួយការគណនាអាយុ
+              Real-time ស្វ័យប្រវត្តិតាមថ្ងៃខែឆ្នាំកំណើត និងគាំទ្រការបញ្ចូលទិន្នន័យពេលគ្មានអ៊ីនធឺណិត (Offline Mode)។
+            </p>
+
+            <div style="margin-bottom: 2rem;">
+              <button type="button" class="btn btn-gold btn-lg btn-trigger-register-modal"
+                style="padding: 0.95rem 2.25rem; font-size: 1.05rem; font-weight: 700; box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);">
+                <i class="fa-solid fa-plus-circle"></i> បើកផ្ទាំងចុះឈ្មោះគ្រួសារថ្មី (Open Registration Popup)
+              </button>
+            </div>
+
+            <div
+              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; text-align: left; margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+              <div
+                style="background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                <div style="color: #60a5fa; font-weight: 700; font-size: 0.92rem; margin-bottom: 0.35rem;">
+                  <i class="fa-solid fa-mobile-screen-button"></i> Mobile-Optimized
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">
+                  រចនាបថ Card-based សម្រាប់សមាជិកម្នាក់ៗ ប៊ូតុងធំងាយចុចលើអេក្រង់ Touch Screen ទូរស័ព្ទ។
+                </div>
+              </div>
+              <div
+                style="background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                <div style="color: var(--gold-light); font-weight: 700; font-size: 0.92rem; margin-bottom: 0.35rem;">
+                  <i class="fa-solid fa-calculator"></i> Real-time Age
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">
+                  គ្រាន់តែជ្រើសរើសថ្ងៃខែឆ្នាំកំណើត ប្រព័ន្ធនឹងគណនាអាយុ និងចំណាត់ថ្នាក់កុមារភ្លាមៗ។
+                </div>
+              </div>
+              <div
+                style="background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                <div style="color: #34d399; font-weight: 700; font-size: 0.92rem; margin-bottom: 0.35rem;">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Offline-First
+                </div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">
+                  ចុះស្រង់ស្ថិតិក្នុងភូមិដោយគ្មានអ៊ីនធឺណិត រួច Sync ចូលប្រព័ន្ធស្វ័យប្រវត្តិកាលណាមាន Wi-Fi/4G។
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. FAMILY DIRECTORY & REVIEW TAB -->
+        <section id="view-families" class="view-section">
+          <!-- Filter Bar -->
+          <div class="filter-bar">
+            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; flex: 1;">
+              <input type="text" id="filter-list-search" class="form-input"
+                placeholder="🔍 ស្វែងរកតាមឈ្មោះ, លេខកូដគ្រួសារ..." style="min-width: 260px;" />
+
+              <select id="filter-list-poor" class="form-select">
+                <option value="">-- គ្រប់ប្រភេទគ្រួសារ --</option>
+                <option value="IDPOOR_1">ក្រ១ (IDPoor 1)</option>
+                <option value="IDPOOR_2">ក្រ២ (IDPoor 2)</option>
+                <option value="GENERAL">ទូទៅ (General)</option>
+              </select>
+
+              <select id="filter-list-status" class="form-select">
+                <option value="">-- គ្រប់ស្ថានភាព --</option>
+                <option value="APPROVED">បានអនុម័ត (Approved)</option>
+                <option value="PENDING_REVIEW">រង់ចាំពិនិត្យ (Pending Review)</option>
+              </select>
+            </div>
+
+            <div>
+              <button type="button" class="btn btn-sm btn-gold btn-trigger-register-modal">
+                <i class="fa-solid fa-plus"></i> ចុះឈ្មោះគ្រួសារថ្មី
+              </button>
+            </div>
+          </div>
+
+          <!-- Families Table -->
+          <div class="table-responsive">
+            <table class="custom-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px; text-align: center;">ល.រ</th>
+                  <th>លេខកូដគ្រួសារ</th>
+                  <th>មេគ្រួសារ</th>
+                  <th>ប្រភេទគ្រួសារ</th>
+                  <th>ទីតាំងភូមិ/ឃុំ</th>
+                  <th style="text-align: center;">សមាជិក</th>
+                  <th>ស្ថានភាព</th>
+                  <th style="text-align: center;">សកម្មភាព</th>
+                </tr>
+              </thead>
+              <tbody id="families-table-tbody">
+                <!-- Populated via JS -->
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- 4. GEOGRAPHIC HIERARCHY TAB -->
+        <section id="view-geo" class="view-section">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+              <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff;">
+                <i class="fa-solid fa-sitemap" style="color: var(--gold-light); margin-right: 8px;"></i>
+                រចនាសម្ព័ន្ធរដ្ឋបាលភូមិសាស្ត្រកម្ពុជា ៤ ថ្នាក់
+              </h2>
+              <p style="font-size: 0.82rem; color: var(--text-muted);">
+                ខេត្ត/រាជធានី (២ ខ្ទង់) -> ស្រុក/ខណ្ឌ (៤ ខ្ទង់) -> ឃុំ/សង្កាត់ (៦ ខ្ទង់) -> ភូមិ (៨ ខ្ទង់)
+              </p>
+            </div>
+            <div>
+              <span class="badge-tag general" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                <i class="fa-solid fa-check-circle" style="color: #10b981;"></i>
+                កូដសម្គាល់បង្កើតស្វ័យប្រវត្តិតាមស្តង់ដារជាតិ
+              </span>
+            </div>
+          </div>
+
+          <div id="geo-explorer-container">
+            <!-- Hierarchy Cards Populated via JS -->
+          </div>
+        </section>
+
+        <!-- 5. REPORTS & EXPORT TAB -->
+        <section id="view-reports" class="view-section">
+          <div style="max-width: 960px; margin: 0 auto;">
+            <div class="card" style="margin-bottom: 1.5rem;">
+              <h2 style="font-size: 1.25rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-file-invoice" style="color: var(--gold-light); margin-right: 8px;"></i>
+                ទាញរបាយការណ៍ និងបោះពុម្ពឯកសាររដ្ឋបាលផ្លូវការ
+              </h2>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                របាយការណ៍ត្រូវបានរៀបចំទម្រង់តាមស្តង់ដារក្រដាសរដ្ឋបាលកម្ពុជា ងាយស្រួលបោះពុម្ព (Print-ready) និងនាំចេញជា
+                Excel
+              </p>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;">
+                <!-- Excel Export Card -->
+                <div
+                  style="background: var(--bg-surface); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <div style="font-size: 2.2rem; color: #10b981; margin-bottom: 0.75rem;">
+                      <i class="fa-solid fa-file-excel"></i>
+                    </div>
+                    <h3 style="font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 0.4rem;">
+                      នាំចេញជាឯកសារ Excel (.xlsx)
+                    </h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+                      ឯកសារ Excel ដែលមាន Header ជាតិ ព្រំដែនតារាងត្រឹមត្រូវ រួមទាំងបញ្ជីសមាជិកគ្រួសារលម្អិត
+                      និងកន្លែងចុះហត្ថលេខា។
+                    </p>
+                  </div>
+                  <a href="/api/reports/export/excel" class="btn btn-success" target="_blank" style="width: 100%;">
+                    <i class="fa-solid fa-download"></i> ទាញយក Excel ឥឡូវនេះ
+                  </a>
+                </div>
+
+                <!-- Printable Official Paper Format Card -->
+                <div
+                  style="background: var(--bg-surface); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <div style="font-size: 2.2rem; color: var(--gold-light); margin-bottom: 0.75rem;">
+                      <i class="fa-solid fa-print"></i>
+                    </div>
+                    <h3 style="font-size: 1.05rem; font-weight: 600; color: #fff; margin-bottom: 0.4rem;">
+                      ទម្រង់សៀវភៅស្ថិតិប្រជាជនភូមិ (Print View)
+                    </h3>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
+                      ទម្រង់ក្រដាស A4 Landscape ផ្លូវការដែលមានក្បាលលិខិតជាតិ "ព្រះរាជាណាចក្រកម្ពុជា ជាតិ សាសនា
+                      ព្រះមហាក្សត្រ" និងហត្ថលេខាមេភូមិ/មេឃុំ។
+                    </p>
+                  </div>
+                  <a href="/print" class="btn btn-gold" target="_blank" style="width: 100%;">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> បើកទម្រង់បោះពុម្ព
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 6. USER MANAGEMENT TAB -->
+        <section id="view-users" class="view-section">
+          <!-- Sub-Tab Header -->
+          <div
+            style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; flex-wrap: wrap;">
+            <button type="button" id="subtab-btn-users" class="btn btn-sm btn-primary"
+              style="display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fa-solid fa-users"></i> បញ្ជីគណនីអ្នកប្រើប្រាស់
+            </button>
+            <button type="button" id="subtab-btn-logs" class="btn btn-sm btn-outline"
+              style="display: flex; align-items: center; gap: 0.4rem;">
+              <i class="fa-solid fa-clock-rotate-left"></i> កំណត់ហេតុចូលប្រើប្រាស់ (User Access Logs)
+            </button>
+          </div>
+
+          <!-- Panel 1: User Accounts -->
+          <div id="subpanel-users">
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+              <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; flex: 1;">
+                <input type="text" id="filter-user-search" class="form-input" placeholder="🔍 ស្វែងរកតាមឈ្មោះ, គណនី..."
+                  style="min-width: 260px;" />
+
+                <select id="filter-user-role" class="form-select">
+                  <option value="">-- គ្រប់តួនាទី (All Roles) --</option>
+                  <option value="ADMIN">Admin ថ្នាក់លើ</option>
+                  <option value="COLLECTOR">អ្នកស្រង់ទិន្នន័យ (User / Collector)</option>
+                </select>
+              </div>
+
+              <div>
+                <button type="button" id="btn-open-create-user-modal" class="btn btn-primary">
+                  <i class="fa-solid fa-user-plus"></i> បង្កើតគណនីថ្មី (Add User)
+                </button>
+              </div>
+            </div>
+
+            <!-- Users Table -->
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px; text-align: center;">ល.រ</th>
+                    <th>ឈ្មោះពេញ (Full Name)</th>
+                    <th>ឈ្មោះគណនី (Username)</th>
+                    <th>តួនាទី (Role)</th>
+                    <th>ដែនសមត្ថកិច្ច (Jurisdiction)</th>
+                    <th style="text-align: center;">ស្ថានភាព</th>
+                    <th style="text-align: center;">សកម្មភាព</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-tbody">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Panel 2: User Access Audit Logs -->
+          <div id="subpanel-logs" style="display: none;">
+            <!-- Log Filter Bar -->
+            <div class="filter-bar">
+              <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; flex: 1;">
+                <input type="text" id="filter-log-search" class="form-input"
+                  placeholder="🔍 ស្វែងរកតាមគណនី, ឈ្មោះ, IP..." style="min-width: 260px;" />
+
+                <select id="filter-log-action" class="form-select">
+                  <option value="">-- គ្រប់សកម្មភាព (All Events) --</option>
+                  <option value="LOGIN_SUCCESS">ចូលជោគជ័យ (Login Success)</option>
+                  <option value="LOGIN_FAILED">ចូលបរាជ័យ (Login Failed)</option>
+                  <option value="LOGIN_SUSPENDED">គណនីផ្អាក (Suspended Attempt)</option>
+                  <option value="LOGOUT">ចាកចេញ (Logout)</option>
+                </select>
+              </div>
+
+              <button type="button" id="btn-refresh-logs" class="btn btn-outline" title="ផ្ទុកឡើងវិញ">
+                <i class="fa-solid fa-rotate"></i> ផ្ទុកកំណត់ហេតុឡើងវិញ
+              </button>
+            </div>
+
+            <!-- Access Logs Table -->
+            <div class="table-responsive">
+              <table class="custom-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px; text-align: center;">ល.រ</th>
+                    <th>កាលបរិច្ឆេទ & ម៉ោង</th>
+                    <th>ឈ្មោះគណនី</th>
+                    <th>ឈ្មោះពេញ</th>
+                    <th>តួនាទី</th>
+                    <th style="text-align: center;">សកម្មភាព (Event)</th>
+                    <th>អាសយដ្ឋាន IP</th>
+                    <th>ឧបករណ៍ / កម្មវិធីរុករក</th>
+                  </tr>
+                </thead>
+                <tbody id="logs-table-tbody">
+                  <!-- Populated via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div> <!-- .app-main-wrapper -->
+  </div> <!-- .app-layout -->
+
+  <!-- POPUP MODAL: FAMILY REGISTRATION & MEMBER ENTRY (MOBILE-OPTIMIZED) -->
+  <div id="family-registration-modal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 960px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <i class="fa-solid fa-house-chimney-user" style="color: var(--gold-light);"></i>
+            <span>ចុះឈ្មោះគ្រួសារ និងបញ្ចូលសមាជិក</span>
+          </div>
+          <div id="preview-family-code" style="margin-top: 0.35rem;">
+            <!-- Live code preview badge injected via JS -->
+          </div>
+        </div>
+        <button type="button" class="modal-close" title="បិទផ្ទាំង"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="form-register-family">
+        <!-- Hidden/pre-selected geo selects for ភូមិប្រាសាទត្រាវ -->
+        <select id="form-province" style="display: none;"></select>
+        <select id="form-district" style="display: none;"></select>
+        <select id="form-commune" style="display: none;"></select>
+        <select id="form-village" style="display: none;"></select>
+
+        <div class="modal-body" style="max-height: calc(85vh - 140px); overflow-y: auto;">
+          <!-- 1. Administrative Locality & Poverty Category -->
+          <div
+            style="background: var(--bg-surface); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
+            <!-- Locality Display -->
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px dashed rgba(255,255,255,0.1);">
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <div
+                  style="width: 32px; height: 32px; border-radius: 6px; background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; color: var(--gold-light);">
+                  <i class="fa-solid fa-location-dot"></i>
+                </div>
+                <div>
+                  <strong style="color: #fff; font-size: 0.95rem;">ភូមិប្រាសាទត្រាវ ឃុំគោកដូង</strong>
+                  <span class="text-dim" style="font-size: 0.8rem; margin-left: 0.4rem;">ស្រុកអង្គរជុំ
+                    ខេត្តសៀមរាប</span>
+                </div>
+              </div>
+              <span class="badge-tag approved" style="font-size: 0.75rem; font-family: monospace;">កូដរដ្ឋបាល៖
+                17010307</span>
+            </div>
+
+            <!-- Poverty Status & Address -->
+            <div
+              style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; align-items: flex-start;">
+              <div>
+                <label
+                  style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--gold-light);">
+                  ប្រភេទគ្រួសារ (Poverty Status) *
+                </label>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  <label class="poverty-radio-card">
+                    <input type="radio" name="form-poor" value="IDPOOR_1" style="accent-color: #ef4444;" />
+                    <span class="badge-tag poor1">ក្រ១ (IDPoor 1)</span>
+                  </label>
+                  <label class="poverty-radio-card">
+                    <input type="radio" name="form-poor" value="IDPOOR_2" style="accent-color: #f59e0b;" />
+                    <span class="badge-tag poor2">ក្រ២ (IDPoor 2)</span>
+                  </label>
+                  <label class="poverty-radio-card">
+                    <input type="radio" name="form-poor" value="GENERAL" checked style="accent-color: #2563eb;" />
+                    <span class="badge-tag general">ទូទៅ (General)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; color: var(--text-muted);">
+                  ចំណាំអាសយដ្ឋាន / ទីតាំងជាក់ស្តែង
+                </label>
+                <input type="text" id="form-address-note" class="form-input"
+                  placeholder="ឧ. ផ្ទះលេខ..., ក្រុមទី..., ក្បែរវត្ត/ប្រាសាទ..." style="width: 100%;" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Members Section (Mobile Optimized Card List) -->
+          <div>
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+              <h3
+                style="font-size: 1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-users" style="color: #60a5fa;"></i>
+                <span>បញ្ជីសមាជិកគ្រួសារ (គណនាអាយុ Real-time)</span>
+              </h3>
+              <button type="button" id="btn-add-member-row" class="btn btn-sm btn-gold">
+                <i class="fa-solid fa-user-plus"></i> + បន្ថែមសមាជិកគ្រួសារ
+              </button>
+            </div>
+
+            <!-- Dynamic Member Cards Container -->
+            <div id="form-members-container">
+              <!-- Member cards injected via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Sticky Footer -->
+        <div class="modal-footer"
+          style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <button type="button" class="btn btn-outline modal-close">
+            <i class="fa-solid fa-xmark"></i> បោះបង់
+          </button>
+          <div style="display: flex; gap: 0.75rem;">
+            <button type="button" class="btn btn-outline" onclick="resetRegistrationForm()">
+              <i class="fa-solid fa-rotate-left"></i> សម្អាតទម្រង់
+            </button>
+            <button type="submit" id="btn-submit-family" class="btn btn-primary"
+              style="padding: 0.65rem 1.75rem; font-size: 0.95rem; font-weight: 700;">
+              <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកគ្រួសារ និងសមាជិក
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FAMILY DETAIL MODAL -->
+  <div id="family-detail-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fa-solid fa-address-card" style="color: var(--gold-light); margin-right: 6px;"></i>
+          ព័ត៌មានលម្អិតនៃគ្រួសារ និងសមាជិកទាំងអស់
+        </div>
+        <button type="button" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="family-detail-content" class="modal-body">
+        <!-- Injected via JS -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline modal-close">បិទ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT SINGLE MEMBER TO EXISTING FAMILY -->
+  <div id="single-member-modal" class="modal-backdrop" style="z-index: 1050;">
+    <div class="modal-box" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-user-plus" style="color: var(--gold-light);"></i>
+          <span id="single-member-modal-title">បន្ថែមសមាជិកថ្មីចូលគ្រួសារ</span>
+        </div>
+        <button type="button" class="modal-close" title="បិទផ្ទាំង"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="form-single-member">
+        <input type="hidden" id="single-member-family-id" value="" />
+        <input type="hidden" id="single-member-id" value="" />
+
+        <div class="modal-body" style="max-height: calc(85vh - 140px); overflow-y: auto;">
+          <div class="member-card-fields" style="grid-template-columns: 1fr 1fr; gap: 0.85rem;">
+            <div class="member-card-field-group" style="grid-column: span 2;">
+              <label>គោត្តនាម និងនាម (Full Name) *</label>
+              <input type="text" id="single-member-name" class="form-input" placeholder="ឧ. សុខ ចាន់ថន" required
+                style="width: 100%;" />
+            </div>
+
+            <div class="member-card-field-group">
+              <label>ភេទ (Gender) *</label>
+              <select id="single-member-gender" class="form-select" style="width: 100%;">
+                <option value="MALE">ប្រុស (Male)</option>
+                <option value="FEMALE">ស្រី (Female)</option>
+              </select>
+            </div>
+
+            <div class="member-card-field-group">
+              <label>ថ្ងៃខែឆ្នាំកំណើត (DOB) *</label>
+              <input type="date" id="single-member-dob" class="form-input" required style="width: 100%;" />
+              <div style="margin-top: 0.25rem;">
+                <span class="member-age-pill"><i class="fa-solid fa-cake-candles"></i> អាយុគណនា៖ <strong
+                    id="single-member-age-display">0</strong> ឆ្នាំ</span>
+              </div>
+            </div>
+
+            <div class="member-card-field-group">
+              <label>ឋានៈក្នុងគ្រួសារ (Relationship) *</label>
+              <select id="single-member-relation" class="form-select" style="width: 100%;">
+                <option value="CHILD">កូន</option>
+                <option value="SPOUSE">ប្រពន្ធ/ប្តី</option>
+                <option value="HEAD">មេគ្រួសារ</option>
+                <option value="PARENT">ឪពុក/ម្តាយ</option>
+                <option value="RELATIVE">សាច់ញាតិ</option>
+                <option value="OTHER">ផ្សេងៗ</option>
+              </select>
+            </div>
+
+            <div class="member-card-field-group">
+              <label>កម្រិតវប្បធម៌ (Education)</label>
+              <select id="single-member-edu" class="form-select" style="width: 100%;">
+                <option value="PRIMARY">បឋមសិក្សា</option>
+                <option value="SECONDARY">មធ្យមសិក្សា</option>
+                <option value="HIGHER">ឧត្តមសិក្សា</option>
+                <option value="NONE">មិនបានរៀន</option>
+              </select>
+            </div>
+
+            <div class="member-card-field-group" style="grid-column: span 2;">
+              <label>ស្ថានភាពសិក្សា និងកម្រិតថ្នាក់</label>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <select id="single-member-dropout" class="form-select" style="flex: 1; min-width: 140px;">
+                  <option value="ACTIVE">កំពុងរៀន</option>
+                  <option value="DROPOUT">បោះបង់ការសិក្សា</option>
+                </select>
+                <input type="text" id="single-member-grade" class="form-input"
+                  placeholder="ថ្នាក់ដែលកំពុងរៀន ឧ. ថ្នាក់ទី ៥" style="flex: 1; min-width: 160px;" />
+              </div>
+            </div>
+
+            <div class="member-card-field-group">
+              <label>មុខរបរ (Occupation)</label>
+              <input type="text" id="single-member-occupation" class="form-input" placeholder="ឧ. កសិករ, សិស្ស..."
+                style="width: 100%;" />
+            </div>
+
+            <div class="member-card-field-group">
+              <label>លេខសំបុត្រកំណើត (Birth Cert No.) *</label>
+              <input type="text" id="single-member-birthcert" class="form-input" value="0" placeholder="0"
+                inputmode="numeric" pattern="[0-9]*" title="សូមបញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9)"
+                style="width: 100%; font-family: monospace; font-weight: 600;" />
+              <small class="text-dim" style="font-size: 0.72rem;">* លេខឡាតាំងប៉ុណ្ណោះ (0-9) លំនាំដើម៖ 0</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline modal-close">បោះបង់</button>
+          <button type="submit" id="btn-submit-single-member" class="btn btn-primary" style="font-weight: 700;">
+            <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកសមាជិក
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DEDICATED FULLSCREEN LOGIN FORM SCREEN -->
+  <div id="app-login-screen" class="login-screen-overlay" style="display: none;">
+    <div class="login-box-card">
+      <div class="login-brand-header">
+        <div class="login-emblem">
+          <i class="fa-solid fa-landmark-dome"></i>
+        </div>
+        <div class="login-national-top">ព្រះរាជាណាចក្រកម្ពុជា</div>
+        <div class="login-national-motto">ជាតិ សាសនា ព្រះមហាក្សត្រ</div>
+        <div class="login-motto-divider"><span>៚</span></div>
+        <h1 class="login-app-title">ប្រព័ន្ធគ្រប់គ្រង និងស្រង់ស្ថិតិប្រជាជនភូមិ</h1>
+        <p class="login-app-sub">ភូមិប្រាសាទត្រាវ ឃុំគោកដូង ស្រុកអង្គរជុំ ខេត្តសៀមរាប</p>
+      </div>
+
+      <form id="form-system-login" class="login-form">
+        <div id="login-alert-error" class="login-alert" style="display: none;">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span id="login-alert-msg">ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ</span>
+        </div>
+
+        <div class="login-field-group">
+          <label for="input-login-username">ឈ្មោះគណនី (Username) *</label>
+          <div class="login-input-wrap">
+            <i class="fa-solid fa-user login-icon"></i>
+            <input type="text" id="input-login-username" class="login-input" placeholder="វាយបញ្ចូលឈ្មោះគណនី..."
+              required autocomplete="username" />
+          </div>
+        </div>
+
+        <div class="login-field-group">
+          <label for="input-login-password">ពាក្យសម្ងាត់ (Password) *</label>
+          <div class="login-input-wrap">
+            <i class="fa-solid fa-lock login-icon"></i>
+            <input type="password" id="input-login-password" class="login-input" placeholder="វាយបញ្ចូលពាក្យសម្ងាត់..."
+              required autocomplete="current-password" />
+            <button type="button" id="btn-toggle-login-pwd" class="login-pwd-toggle" title="បង្ហាញ/លាក់ពាក្យសម្ងាត់">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="btn btn-primary btn-login-btn">
+          <i class="fa-solid fa-right-to-bracket"></i> ចូលប្រើប្រាស់ប្រព័ន្ធ (Sign In)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- USER CREATE & EDIT MODAL -->
+  <div id="user-modal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 540px;">
+      <div class="modal-header">
+        <div class="modal-title" id="user-modal-title">
+          <i class="fa-solid fa-user-gear" style="color: var(--gold-light); margin-right: 6px;"></i>
+          បង្កើតគណនីអ្នកប្រើប្រាស់ថ្មី
+        </div>
+        <button type="button" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="form-user-manage">
+        <input type="hidden" id="manage-user-id" value="" />
+        <div class="modal-body">
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div>
+              <label
+                style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: var(--text-muted);">គោត្តនាម
+                និងនាមពេញ (Full Name) *</label>
+              <input type="text" id="manage-user-fullname" class="form-input" placeholder="ឧ. លោក ឈុន វណ្ណដា" required
+                style="width: 100%;" />
+            </div>
+
+            <div>
+              <label
+                style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: var(--text-muted);">ឈ្មោះគណនី
+                (Username Login) *</label>
+              <input type="text" id="manage-user-username" class="form-input" placeholder="ឧ. chhun_vanda" required
+                style="width: 100%;" />
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: var(--text-muted);"
+                id="label-user-password">ពាក្យសម្ងាត់ (Password) *</label>
+              <input type="password" id="manage-user-password" class="form-input" placeholder="វាយបញ្ចូលពាក្យសម្ងាត់..."
+                style="width: 100%;" />
+              <small id="hint-user-password" class="text-dim"
+                style="display: none; font-size: 0.72rem; margin-top: 0.2rem;">ទុកទទេ
+                ប្រសិនបើមិនចង់ផ្លាស់ប្តូរពាក្យសម្ងាត់ចាស់</small>
+            </div>
+
+            <div>
+              <label
+                style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: var(--text-muted);">តួនាទី
+                និងសិទ្ធិប្រើប្រាស់ (Role) *</label>
+              <select id="manage-user-role" class="form-select" style="width: 100%;">
+                <option value="COLLECTOR">អ្នកស្រង់ទិន្នន័យ (User / Data Collector)</option>
+                <option value="ADMIN">Admin ថ្នាក់លើ (Super Administrator)</option>
+              </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div>
+                <label
+                  style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: var(--text-muted);">ដែនសមត្ថកិច្ច
+                  (Level)</label>
+                <select id="manage-user-level" class="form-select" style="width: 100%;">
+                  <option value="ALL">ទូទាំងប្រទេស (ALL)</option>
+                  <option value="PROVINCE">ថ្នាក់ខេត្ត/រាជធានី</option>
+                  <option value="DISTRICT">ថ្នាក់ស្រុក/ខណ្ឌ</option>
+                  <option value="COMMUNE">ថ្នាក់ឃុំ/សង្កាត់</option>
+                  <option value="VILLAGE">ថ្នាក់ភូមិ</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: var(--text-muted);">លេខកូដតំបន់
+                  (Geo Code)</label>
+                <input type="text" id="manage-user-geocode" class="form-input" placeholder="ឧ. 12010101"
+                  style="width: 100%;" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline modal-close">បោះបង់</button>
+          <button type="submit" id="btn-save-user" class="btn btn-primary">
+            <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកគណនី
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/static/js/db.js"></script>
+  <script src="/static/js/sync.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+
+</html>

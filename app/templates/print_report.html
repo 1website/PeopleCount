@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <title>សៀវភៅស្រង់ស្ថិតិប្រជាជន និងស្ថានភាពគ្រួសារតាមភូមិ</title>
+  <link rel="stylesheet" href="/static/css/print.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+</head>
+<body>
+
+  <!-- Screen-only action toolbar -->
+  <div class="no-print">
+    <div>
+      <a href="/" style="text-decoration: none; color: #1e3a8a; font-weight: 600;">
+        <i class="fa-solid fa-arrow-left"></i> ត្រឡប់ទៅកម្មវិធីដើម
+      </a>
+      <span style="margin: 0 10px; color: #cbd5e1;">|</span>
+      <span>ទម្រង់ក្រដាសរដ្ឋបាលស្តង់ដារ A4 Landscape សម្រាប់បោះពុម្ព ឬរក្សាទុកជា PDF</span>
+    </div>
+    <div>
+      <button onclick="window.print()" style="background: #1e3a8a; color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-weight: 600; cursor: pointer;">
+        <i class="fa-solid fa-print"></i> បោះពុម្ព / រក្សាទុកជា PDF (Print / Save as PDF)
+      </button>
+    </div>
+  </div>
+
+  <div class="print-container">
+    <!-- National Banner -->
+    <div class="header-banner">
+      <h2>ព្រះរាជាណាចក្រកម្ពុជា</h2>
+      <h3>ជាតិ សាសនា ព្រះមហាក្សត្រ</h3>
+      <h1>តារាងស្រង់ស្ថិតិប្រជាជន និងស្ថានភាពគ្រួសារលម្អិតតាមមូលដ្ឋានភូមិ</h1>
+    </div>
+
+    <!-- Administrative Meta Info -->
+    <div class="meta-info-grid">
+      <div>
+        <span id="print-loc-info">រាជធានី/ខេត្ត៖ ................................. ស្រុក/ខណ្ឌ៖ ................................. ឃុំ/សង្កាត់៖ .................................</span>
+      </div>
+      <div>
+        <span>កាលបរិច្ឆេទស្រង់៖ <strong id="print-date"></strong></span>
+      </div>
+    </div>
+
+    <!-- Main Table -->
+    <table class="census-table">
+      <thead>
+        <tr>
+          <th style="width: 35px;">ល.រ</th>
+          <th style="width: 120px;">លេខកូដគ្រួសារ</th>
+          <th style="width: 80px;">ប្រភេទគ្រួសារ</th>
+          <th>គោត្តនាម និងនាម</th>
+          <th style="width: 50px;">ភេទ</th>
+          <th style="width: 55px;">សញ្ជាតិ</th>
+          <th style="width: 85px;">ថ្ងៃខែកំណើត</th>
+          <th style="width: 45px;">អាយុ</th>
+          <th style="width: 85px;">ឋានៈគ្រួសារ</th>
+          <th style="width: 90px;">កម្រិតវប្បធម៌</th>
+          <th style="width: 110px;">ស្ថានភាពសិក្សា</th>
+          <th style="width: 65px;">សំបុត្រកំណើត</th>
+          <th>មុខរបរ</th>
+          <th>ទីលំនៅ/ចំណាំ</th>
+        </tr>
+      </thead>
+      <tbody id="print-table-tbody">
+        <!-- Injected via JavaScript from API -->
+      </tbody>
+    </table>
+
+    <!-- Official Administrative Signatures -->
+    <div class="signature-section">
+      <div class="sign-col">
+        <strong>អ្នកស្រង់ស្ថិតិ</strong>
+        <div class="sign-space"></div>
+        <p>ហត្ថលេខា និងឈ្មោះ</p>
+      </div>
+
+      <div class="sign-col">
+        <strong>បានឃើញ និងបញ្ជាក់</strong><br />
+        <strong>មេភូមិ</strong>
+        <div class="sign-space"></div>
+        <p>ហត្ថលេខា និងត្រា</p>
+      </div>
+
+      <div class="sign-col">
+        <p>ថ្ងៃទី............ ខែ............ ឆ្នាំ ២០២...</p>
+        <strong>ប្រធានក្រុមប្រឹក្សាឃុំ/សង្កាត់</strong>
+        <div class="sign-space"></div>
+        <p>ហត្ថលេខា និងត្រា</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("print-date").textContent = new Date().toLocaleDateString("km-KH", {
+      year: "numeric", month: "long", day: "numeric"
+    });
+
+    async function loadPrintData() {
+      try {
+        const res = await fetch("/api/families?limit=500");
+        if (!res.ok) return;
+        const families = await res.json();
+
+        const tbody = document.getElementById("print-table-tbody");
+        let seq = 1;
+        let rowsHtml = "";
+
+        const poorMap = { "IDPOOR_1": "ក្រ១", "IDPOOR_2": "ក្រ២", "GENERAL": "ទូទៅ" };
+        const relMap = { "HEAD": "មេគ្រួសារ", "SPOUSE": "ប្រពន្ធ/ប្តី", "CHILD": "កូន", "PARENT": "ឪពុក/ម្តាយ", "RELATIVE": "សាច់ញាតិ", "OTHER": "ផ្សេងៗ" };
+        const eduMap = { "NONE": "មិនបានរៀន", "PRIMARY": "បឋម", "SECONDARY": "មធ្យម", "HIGHER": "ឧត្តម" };
+
+        for (const fam of families) {
+          const detailRes = await fetch(`/api/families/${fam.id}`);
+          if (!detailRes.ok) continue;
+          const detail = await detailRes.json();
+
+          for (const m of detail.members) {
+            let study = m.dropout_status === "DROPOUT" ? `បោះបង់ (${m.dropout_grade || ''})` : 
+                        (m.dropout_grade ? `កំពុងរៀន (${m.dropout_grade})` : "កំពុងរៀន");
+            rowsHtml += `
+              <tr>
+                <td>${seq}</td>
+                <td><strong>${fam.family_code}</strong></td>
+                <td>${poorMap[fam.poor_category] || fam.poor_category}</td>
+                <td class="text-left"><strong>${m.full_name}</strong></td>
+                <td>${m.gender === "MALE" ? "ប្រុស" : "ស្រី"}</td>
+                <td>${m.nationality}</td>
+                <td>${m.dob}</td>
+                <td><strong>${m.age}</strong></td>
+                <td>${relMap[m.relation] || m.relation}</td>
+                <td>${eduMap[m.education_status] || m.education_status}</td>
+                <td>${study}</td>
+                <td>${m.birth_cert && String(m.birth_cert).trim() !== "0" && String(m.birth_cert).trim() !== "false" ? m.birth_cert : "0"}</td>
+                <td class="text-left">${m.occupation || "-"}</td>
+                <td class="text-left">${fam.village_name_kh || "-"}</td>
+              </tr>
+            `;
+            seq++;
+          }
+        }
+
+        tbody.innerHTML = rowsHtml || `<tr><td colspan="14">គ្មានទិន្នន័យ</td></tr>`;
+      } catch (e) {
+        console.error("Print data fetch failed:", e);
+      }
+    }
+
+    loadPrintData();
+  </script>
+</body>
+</html>

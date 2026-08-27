@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700&display=swap');
+
+@page {
+  size: A4 landscape;
+  margin: 12mm 15mm;
+}
+
+body {
+  font-family: 'Kantumruy Pro', 'Khmer OS Battambang', sans-serif;
+  color: #000;
+  background: #fff;
+  margin: 0;
+  padding: 0;
+  font-size: 11pt;
+  line-height: 1.4;
+}
+
+.no-print {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 10px 20px;
+  border-bottom: 2px solid #cbd5e1;
+  margin-bottom: 20px;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+.print-container {
+  width: 100%;
+}
+
+.header-banner {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.header-banner h2 {
+  font-size: 15pt;
+  font-weight: 700;
+  margin: 0;
+}
+
+.header-banner h3 {
+  font-size: 13pt;
+  font-weight: 600;
+  margin: 4px 0 15px 0;
+}
+
+.header-banner h1 {
+  font-size: 14pt;
+  font-weight: 700;
+  margin: 15px 0 5px 0;
+  text-decoration: underline;
+}
+
+.meta-info-grid {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5pt;
+  margin-bottom: 12px;
+}
+
+.census-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 9.5pt;
+}
+
+.census-table th, .census-table td {
+  border: 1px solid #000;
+  padding: 5px 6px;
+  text-align: center;
+}
+
+.census-table th {
+  background-color: #f2f2f2;
+  font-weight: 700;
+}
+
+.census-table td.text-left {
+  text-align: left;
+}
+
+.signature-section {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  page-break-inside: avoid;
+  font-size: 10.5pt;
+}
+
+.sign-col {
+  text-align: center;
+  width: 30%;
+}
+
+.sign-space {
+  height: 70px;
+}

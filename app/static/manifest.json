@@ -1,0 +1,22 @@
+{
+  "name": "ប្រព័ន្ធគ្រប់គ្រងស្ថិតិប្រជាជន និងគ្រួសារកម្ពុជា",
+  "short_name": "ស្ថិតិប្រជាជន",
+  "description": "Cambodia Population & Family Census Management System with Offline Support",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1329",
+  "theme_color": "#1e3a8a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/static/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
