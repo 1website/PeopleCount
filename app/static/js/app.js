@@ -312,7 +312,8 @@ const TAB_TITLES = {
   "families": `<i class="fa-solid fa-address-book" style="color: var(--gold-light); margin-right: 8px;"></i> បញ្ជីគ្រប់គ្រងគ្រួសារ និងពិនិត្យអនុម័ត`,
   "geo": `<i class="fa-solid fa-sitemap" style="color: var(--gold-light); margin-right: 8px;"></i> រចនាសម្ព័ន្ធរដ្ឋបាលភូមិសាស្ត្រកម្ពុជា ៤ ថ្នាក់`,
   "reports": `<i class="fa-solid fa-file-excel" style="color: var(--gold-light); margin-right: 8px;"></i> របាយការណ៍ និងនាំចេញឯកសាររដ្ឋបាល`,
-  "users": `<i class="fa-solid fa-users-gear" style="color: var(--gold-light); margin-right: 8px;"></i> គ្រប់គ្រងអ្នកប្រើប្រាស់ និងសិទ្ធិ (User Management)`
+  "users": `<i class="fa-solid fa-users-gear" style="color: var(--gold-light); margin-right: 8px;"></i> គ្រប់គ្រងអ្នកប្រើប្រាស់ និងសិទ្ធិ (User Management)`,
+  "backup": `<i class="fa-solid fa-database" style="color: var(--gold-light); margin-right: 8px;"></i> បម្រុងទុក និងស្តារទិន្នន័យ (1-Click Backup & Restore)`
 };
 
 function switchTab(tabId) {
@@ -342,6 +343,7 @@ function switchTab(tabId) {
   if (tabId === "families") loadFamiliesList();
   if (tabId === "geo") loadGeoExplorer();
   if (tabId === "users") loadUsersList();
+  if (tabId === "backup") loadBackupStats();
 }
 
 window.openRegistrationModal = function() {
@@ -1656,6 +1658,7 @@ function updateUserPillUI() {
   const navGeo = document.getElementById("nav-item-geo");
   const navReports = document.getElementById("nav-item-reports");
   const navUsers = document.getElementById("nav-item-users");
+  const navBackup = document.getElementById("nav-item-backup");
 
   if (user) {
     if (sidebarAvatar) sidebarAvatar.textContent = user.full_name ? user.full_name[0].toUpperCase() : "U";
@@ -1664,14 +1667,15 @@ function updateUserPillUI() {
     }
 
     if (user.role === "ADMIN") {
-      // ADMIN: Show all 6 navigation tabs
-      if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៦`;
+      // ADMIN: Show all 7 navigation tabs
+      if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៧`;
       if (navDashboard) navDashboard.style.display = "flex";
       if (navRegistration) navRegistration.style.display = "flex";
       if (navFamilies) navFamilies.style.display = "flex";
       if (navGeo) navGeo.style.display = "flex";
       if (navReports) navReports.style.display = "flex";
       if (navUsers) navUsers.style.display = "flex";
+      if (navBackup) navBackup.style.display = "flex";
     } else {
       // COLLECTOR (អ្នកស្រង់ទិន្នន័យ): Show ONLY 'ចុះឈ្មោះគ្រួសារ និងបញ្ចូលសមាជិក'
       if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-user-pen"></i> មុខងារចុះឈ្មោះ (Collector)`;
@@ -1681,6 +1685,7 @@ function updateUserPillUI() {
       if (navGeo) navGeo.style.display = "none";
       if (navReports) navReports.style.display = "none";
       if (navUsers) navUsers.style.display = "none";
+      if (navBackup) navBackup.style.display = "none";
 
       if (state.currentTab !== "registration") {
         switchTab("registration");
@@ -1689,13 +1694,14 @@ function updateUserPillUI() {
   } else {
     if (sidebarAvatar) sidebarAvatar.innerHTML = `<i class="fa-solid fa-user"></i>`;
     if (sidebarUsername) sidebarUsername.textContent = "មិនទាន់ចូលប្រើ (Guest)";
-    if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៦`;
+    if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៧`;
     if (navDashboard) navDashboard.style.display = "flex";
     if (navRegistration) navRegistration.style.display = "flex";
     if (navFamilies) navFamilies.style.display = "flex";
     if (navGeo) navGeo.style.display = "flex";
     if (navReports) navReports.style.display = "flex";
     if (navUsers) navUsers.style.display = "none";
+    if (navBackup) navBackup.style.display = "none";
   }
 }
 
@@ -1889,6 +1895,179 @@ document.addEventListener("DOMContentLoaded", async () => {
     dateEl.textContent = formatKhmerFullDate(new Date());
   }
 
+  // Setup Backup & Restore handlers
+  setupBackupRestoreUI();
+
   // Load Dashboard by default
   loadDashboardStats();
 });
+
+// --- Database Backup & Restore Module ---
+let selectedRestoreFile = null;
+
+async function loadBackupStats() {
+  const badgeText = document.getElementById("backup-engine-text");
+  const statFam = document.getElementById("stat-families-count");
+  const statMem = document.getElementById("stat-members-count");
+  const statGeo = document.getElementById("stat-geo-count");
+  const statUsers = document.getElementById("stat-users-count");
+  const statLogs = document.getElementById("stat-logs-count");
+
+  try {
+    const res = await apiRequest("/api/backup/stats");
+    if (!res.ok) throw new Error("Failed to fetch backup stats");
+    const data = await res.json();
+
+    if (badgeText) badgeText.textContent = data.engine;
+    if (statFam) statFam.textContent = `${toKhmerDigits(data.counts.families)} គ្រួសារ`;
+    if (statMem) statMem.textContent = `${toKhmerDigits(data.counts.members)} នាក់`;
+    const totalGeo = data.counts.provinces + data.counts.districts + data.counts.communes + data.counts.villages;
+    if (statGeo) statGeo.textContent = `${toKhmerDigits(totalGeo)} ទីតាំង`;
+    if (statUsers) statUsers.textContent = `${toKhmerDigits(data.counts.users)} គណនី`;
+    if (statLogs) statLogs.textContent = `${toKhmerDigits(data.counts.user_audit_logs)} កំណត់ត្រា`;
+  } catch (err) {
+    console.error("Backup stats error:", err);
+    if (badgeText) badgeText.textContent = "មិនអាចភ្ជាប់បាន";
+  }
+}
+
+async function downloadBackupSnapshot() {
+  const btn = document.getElementById("btn-export-backup");
+  if (!btn) return;
+  const origHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> កំពុងទាញយកទិន្នន័យ...`;
+
+  try {
+    const token = localStorage.getItem("access_token");
+    const res = await fetch("/api/backup/export", {
+      headers: token ? { "Authorization": `Bearer ${token}` } : {}
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "បរាជ័យក្នុងការទាញយក Backup");
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const now = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    const timestamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+    a.download = `census_backup_${timestamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    window.showToast("ទាញយកឯកសារ Backup បានជោគជ័យ!", "success");
+  } catch (err) {
+    window.showToast(err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHtml;
+  }
+}
+
+function setupBackupRestoreUI() {
+  const dropZone = document.getElementById("drop-zone-backup");
+  const fileInput = document.getElementById("input-restore-file");
+  const fileLabel = document.getElementById("restore-file-label");
+  const btnRestore = document.getElementById("btn-execute-restore");
+  const btnExport = document.getElementById("btn-export-backup");
+
+  btnExport?.addEventListener("click", downloadBackupSnapshot);
+
+  dropZone?.addEventListener("click", () => fileInput?.click());
+
+  dropZone?.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = "#3b82f6";
+    dropZone.style.background = "rgba(59, 130, 246, 0.1)";
+  });
+
+  dropZone?.addEventListener("dragleave", () => {
+    dropZone.style.borderColor = "rgba(255, 255, 255, 0.18)";
+    dropZone.style.background = "rgba(0, 0, 0, 0.2)";
+  });
+
+  dropZone?.addEventListener("drop", (e) => {
+    e.preventDefault();
+    dropZone.style.borderColor = "rgba(255, 255, 255, 0.18)";
+    dropZone.style.background = "rgba(0, 0, 0, 0.2)";
+    if (e.dataTransfer.files.length > 0) {
+      handleSelectedBackupFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  fileInput?.addEventListener("change", (e) => {
+    if (e.target.files.length > 0) {
+      handleSelectedBackupFile(e.target.files[0]);
+    }
+  });
+
+  function handleSelectedBackupFile(file) {
+    if (!file.name.endsWith(".json")) {
+      window.showToast("សូមជ្រើសរើសឯកសារទម្រង់ .json ប៉ុណ្ណោះ", "error");
+      return;
+    }
+    selectedRestoreFile = file;
+    const sizeKb = (file.size / 1024).toFixed(1);
+    if (fileLabel) {
+      fileLabel.innerHTML = `<strong style="color: #34d399;"><i class="fa-solid fa-file-check"></i> ${file.name}</strong> (${sizeKb} KB)`;
+    }
+    if (btnRestore) {
+      btnRestore.disabled = false;
+    }
+  }
+
+  btnRestore?.addEventListener("click", async () => {
+    if (!selectedRestoreFile) return;
+
+    const confirmed = confirm(
+      "⚠️ ការព្រមានសំខាន់៖ ការស្តារទិន្នន័យឡើងវិញ នឹងជំនួសទិន្នន័យចាស់ទាំងអស់នៅក្នុងប្រព័ន្ធ។\n\nតើអ្នកពិតជាចង់បន្តដំណើរការស្តារទិន្នន័យ (Restore) មែនទេ?"
+    );
+    if (!confirmed) return;
+
+    btnRestore.disabled = true;
+    const origHtml = btnRestore.innerHTML;
+    btnRestore.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> កំពុងស្តារទិន្នន័យ...`;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedRestoreFile);
+
+      const token = localStorage.getItem("access_token");
+      const res = await fetch("/api/backup/restore", {
+        method: "POST",
+        headers: token ? { "Authorization": `Bearer ${token}` } : {},
+        body: formData
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "បរាជ័យក្នុងការស្តារទិន្នន័យ");
+      }
+
+      const result = await res.json();
+      window.showToast(result.message || "ស្តារទិន្នន័យបានជោគជ័យ ១០០%!", "success");
+
+      // Reset file selection
+      selectedRestoreFile = null;
+      if (fileInput) fileInput.value = "";
+      if (fileLabel) fileLabel.innerHTML = "ចុចទីនេះ ឬទម្លាក់ File .json ដើម្បីជ្រើសរើស";
+      btnRestore.disabled = true;
+
+      // Reload stats and current view
+      loadBackupStats();
+      loadDashboardStats();
+      loadFamiliesList();
+    } catch (err) {
+      window.showToast(err.message, "error");
+    } finally {
+      btnRestore.innerHTML = origHtml;
+    }
+  });
+}

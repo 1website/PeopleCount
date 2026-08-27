@@ -98,6 +98,14 @@
             <span class="nav-sub">Admin & User Roles</span>
           </div>
         </a>
+
+        <a class="nav-item" data-tab="backup" id="nav-item-backup">
+          <div class="nav-icon"><i class="fa-solid fa-database"></i></div>
+          <div class="nav-label">
+            <span class="nav-title">៧. បម្រុងទុក & ស្តារទិន្នន័យ</span>
+            <span class="nav-sub">1-Click Cloud Snapshot</span>
+          </div>
+        </a>
       </nav>
 
       <!-- Sidebar Bottom Status & User Profile -->
@@ -631,6 +639,115 @@
                   <!-- Populated via JS -->
                 </tbody>
               </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- 7. DATABASE BACKUP & RESTORE TAB -->
+        <section id="view-backup" class="view-section">
+          <!-- Header Banner -->
+          <div class="card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, rgba(30, 58, 138, 0.35) 0%, rgba(15, 23, 42, 0.6) 100%); border: 1px solid rgba(59, 130, 246, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; color: #fff; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="fa-solid fa-database" style="color: #60a5fa;"></i>
+                  ប្រព័ន្ធគ្រប់គ្រងការបម្រុងទុក & ស្តារទិន្នន័យ (1-Click Database Backup & Restore)
+                </h3>
+                <p style="color: var(--text-dim); font-size: 0.85rem; margin: 0;">
+                  ទាញយកទិន្នន័យគម្រោងទាំងមូលជា JSON Snapshot មានសុវត្ថិភាពខ្ពស់ និងអាចស្តារទិន្នន័យឡើងវិញបានគ្រប់ពេល។
+                </p>
+              </div>
+              <div id="backup-db-badge" class="badge-tag" style="padding: 0.4rem 0.85rem; font-size: 0.85rem; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <i class="fa-solid fa-server" style="margin-right: 5px;"></i>
+                <span id="backup-engine-text">កំពុងត្រួតពិនិត្យ...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Action Cards Grid -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+            <!-- Card 1: Live Database Stats -->
+            <div class="card">
+              <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                <h4 style="font-size: 1rem; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="fa-solid fa-chart-simple" style="color: #38bdf8;"></i> ស្ថិតិទិន្នន័យក្នុងប្រព័ន្ធបច្ចុប្បន្ន
+                </h4>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; padding: 0.45rem 0.65rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px;">
+                  <span style="color: var(--text-dim);"><i class="fa-solid fa-users" style="width: 20px;"></i> គ្រួសារសរុប (Families)</span>
+                  <strong id="stat-families-count" style="color: #60a5fa;">0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; padding: 0.45rem 0.65rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px;">
+                  <span style="color: var(--text-dim);"><i class="fa-solid fa-user-group" style="width: 20px;"></i> សមាជិកសរុប (Members)</span>
+                  <strong id="stat-members-count" style="color: #34d399;">0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; padding: 0.45rem 0.65rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px;">
+                  <span style="color: var(--text-dim);"><i class="fa-solid fa-map-location-dot" style="width: 20px;"></i> ភូមិ/ឃុំ/ស្រុក/ខេត្ត</span>
+                  <strong id="stat-geo-count" style="color: #fbbf24;">0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; padding: 0.45rem 0.65rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px;">
+                  <span style="color: var(--text-dim);"><i class="fa-solid fa-user-shield" style="width: 20px;"></i> គណនីអ្នកប្រើប្រាស់</span>
+                  <strong id="stat-users-count" style="color: #f472b6;">0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; padding: 0.45rem 0.65rem; background: rgba(255, 255, 255, 0.02); border-radius: 6px;">
+                  <span style="color: var(--text-dim);"><i class="fa-solid fa-clock-rotate-left" style="width: 20px;"></i> កំណត់ហេតុ Audit Logs</span>
+                  <strong id="stat-logs-count" style="color: #a78bfa;">0</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: 1-Click Backup Export -->
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                  <h4 style="font-size: 1rem; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-cloud-arrow-down" style="color: #34d399;"></i> ទាញយក Backup (Export Snapshot)
+                  </h4>
+                </div>
+                <p style="color: var(--text-dim); font-size: 0.85rem; line-height: 1.5; margin-bottom: 1rem;">
+                  ចុចប៊ូតុងខាងក្រោមដើម្បីទាញយកទិន្នន័យប្រព័ន្ធទាំងអស់ជាឯកសារ <code>.json</code> រួមមាន៖ ភូមិសាស្ត្រ, ព័ត៌មានគ្រួសារ, សមាជិក, គណនី, និងកំណត់ហេតុ។
+                </p>
+                <div style="font-size: 0.8rem; color: #94a3b8; background: rgba(59, 130, 246, 0.08); padding: 0.6rem; border-radius: 6px; border-left: 3px solid #3b82f6; margin-bottom: 1.25rem;">
+                  <i class="fa-solid fa-circle-info"></i> ឯកសារនេះអាចយកទៅស្តារឡើងវិញបានទាំងលើ SQLite ឬ PostgreSQL ដោយមិនបាត់បង់ទម្រង់។
+                </div>
+              </div>
+
+              <button type="button" id="btn-export-backup" class="btn btn-primary" style="width: 100%; padding: 0.8rem; font-size: 0.95rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-download"></i>
+                <span>ទាញយក Backup ឥឡូវនេះ (1-Click Download)</span>
+              </button>
+            </div>
+
+            <!-- Card 3: 1-Click Restore -->
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                  <h4 style="font-size: 1rem; color: #fff; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-clock-rotate-left" style="color: #f59e0b;"></i> ស្តារទិន្នន័យឡើងវិញ (Restore Database)
+                  </h4>
+                </div>
+                <p style="color: var(--text-dim); font-size: 0.85rem; line-height: 1.5; margin-bottom: 0.75rem;">
+                  ជ្រើសរើសឯកសារ Backup (<code>.json</code>) ដែលអ្នកបានទាញយកពីមុន ដើម្បីស្តារទិន្នន័យឡើងវិញ។
+                </p>
+                <div style="font-size: 0.78rem; color: #f87171; background: rgba(239, 68, 68, 0.08); padding: 0.6rem; border-radius: 6px; border-left: 3px solid #ef4444; margin-bottom: 1rem;">
+                  <i class="fa-solid fa-triangle-exclamation"></i> <strong>ការប្រុងប្រយ័ត្ន៖</strong> ការស្តារទិន្នន័យ នឹងជំនួសទិន្នន័យចាស់ទាំងអស់ដើម្បីធានាតុល្យភាពទិន្នន័យ។
+                </div>
+
+                <!-- Drag & Drop / File Input Box -->
+                <div id="drop-zone-backup" style="border: 2px dashed rgba(255, 255, 255, 0.18); border-radius: 8px; padding: 1.25rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(0, 0, 0, 0.2);">
+                  <i class="fa-solid fa-file-arrow-up" style="font-size: 1.75rem; color: #60a5fa; margin-bottom: 0.5rem; display: block;"></i>
+                  <span id="restore-file-label" style="font-size: 0.82rem; color: var(--text-dim); display: block;">ចុចទីនេះ ឬទម្លាក់ File .json ដើម្បីជ្រើសរើស</span>
+                  <input type="file" id="input-restore-file" accept=".json" style="display: none;" />
+                </div>
+              </div>
+
+              <div style="margin-top: 1rem;">
+                <button type="button" id="btn-execute-restore" class="btn" style="width: 100%; padding: 0.8rem; font-size: 0.95rem; background: #dc2626; color: #fff; display: flex; justify-content: center; align-items: center; gap: 0.5rem;" disabled>
+                  <i class="fa-solid fa-rotate-left"></i>
+                  <span>ចាប់ផ្តើមស្តារទិន្នន័យ (Restore)</span>
+                </button>
+              </div>
             </div>
           </div>
         </section>

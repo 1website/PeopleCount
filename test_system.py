@@ -297,6 +297,59 @@ def test_user_audit_logs():
     print("[OK] User access audit logs (login, failed login, logout, RBAC protection) test passed")
 
 
+def test_backup_and_restore():
+    # 1. Collector login -> try to export backup -> 403 Forbidden
+    coll_auth = client.post("/api/auth/login", json={"username": "collector", "password": "collector123"})
+    coll_headers = {"Authorization": f"Bearer {coll_auth.json()['access_token']}"}
+    coll_export = client.get("/api/backup/export", headers=coll_headers)
+    assert coll_export.status_code == 403, f"Collector should be forbidden from export, got {coll_export.status_code}"
+
+    # 2. Admin login -> get stats
+    admin_auth = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+    admin_headers = {"Authorization": f"Bearer {admin_auth.json()['access_token']}"}
+
+    stats_res = client.get("/api/backup/stats", headers=admin_headers)
+    assert stats_res.status_code == 200
+    stats = stats_res.json()
+    assert "counts" in stats
+    assert stats["counts"]["provinces"] >= 1
+    assert stats["counts"]["families"] >= 1
+
+    # 3. Admin exports full backup
+    export_res = client.get("/api/backup/export", headers=admin_headers)
+    assert export_res.status_code == 200
+    assert "attachment; filename=" in export_res.headers.get("Content-Disposition", "")
+    backup_data = export_res.json()
+    assert backup_data["system"] == "Cambodia Demographic, Family Census & Education Tracking System"
+    assert "data" in backup_data
+    assert len(backup_data["data"]["provinces"]) >= 1
+    assert len(backup_data["data"]["families"]) >= 1
+
+    # 4. Admin restores from backup payload
+    import io
+    import json
+    backup_bytes = json.dumps(backup_data).encode("utf-8")
+    files = {"file": ("test_backup.json", io.BytesIO(backup_bytes), "application/json")}
+    restore_res = client.post("/api/backup/restore", headers=admin_headers, files=files)
+    assert restore_res.status_code == 200, f"Restore failed: {restore_res.text}"
+    restore_data = restore_res.json()
+    assert restore_data["success"] is True
+
+    # 5. Verify database records are intact after restore
+    after_stats_res = client.get("/api/backup/stats", headers=admin_headers)
+    assert after_stats_res.status_code == 200
+    after_stats = after_stats_res.json()
+    assert after_stats["counts"]["provinces"] == stats["counts"]["provinces"]
+    assert after_stats["counts"]["families"] == stats["counts"]["families"]
+
+    # 6. Test invalid file format rejection
+    bad_files = {"file": ("invalid.txt", io.BytesIO(b"not json"), "text/plain")}
+    bad_res = client.post("/api/backup/restore", headers=admin_headers, files=bad_files)
+    assert bad_res.status_code == 400
+
+    print("[OK] Database 1-Click Backup Export & Restore integration test passed")
+
+
 if __name__ == "__main__":
     print("\n--- Running System Integration Tests ---")
     test_login_and_roles()
@@ -306,5 +359,6 @@ if __name__ == "__main__":
     test_offline_sync()
     test_user_management_crud()
     test_user_audit_logs()
+    test_backup_and_restore()
     print("\n>>> ALL TESTS PASSED SUCCESSFULLY! <<<")
 
