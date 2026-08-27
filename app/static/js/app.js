@@ -464,7 +464,7 @@ function renderDashboard(data) {
   if (dropTbody) {
     const grades = Object.entries(edu.dropout_breakdown || {});
     if (grades.length === 0) {
-      dropTbody.innerHTML = `<tr><td colspan="2" class="text-center text-dim" style="padding: 1.5rem;">គ្មានទិន្នន័យបោះបង់ការសិក្សា</td></tr>`;
+      dropTbody.innerHTML = `<tr><td colspan="2" class="text-center text-dim" style="padding: 1.5rem; text-align: center;">គ្មានទិន្នន័យបោះបង់ការសិក្សា</td></tr>`;
     } else {
       dropTbody.innerHTML = grades.map(([gr, cnt]) => `
         <tr>
@@ -760,7 +760,7 @@ function resetRegistrationForm() {
 async function loadFamiliesList() {
   const tbody = document.getElementById("families-table-tbody");
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> កំពុងផ្ទុកទិន្នន័យ...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; color: #60a5fa;"></i> កំពុងផ្ទុកទិន្នន័យ...</td></tr>`;
 
   try {
     const poorFilter = document.getElementById("filter-list-poor")?.value || "";
@@ -797,7 +797,7 @@ async function loadFamiliesList() {
     renderFamiliesTable(allFamilies);
   } catch (err) {
     console.error("Failed to load families:", err);
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2rem;">មិនអាចទាញទិន្នន័យបានទេ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; color: #f59e0b;"></i>មិនអាចទាញទិន្នន័យបានទេ</td></tr>`;
   }
 }
 
@@ -806,7 +806,7 @@ function renderFamiliesTable(families) {
   if (!tbody) return;
 
   if (families.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem;">មិនមានទិន្នន័យគ្រួសារដែលស្វែងរកទេ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 3rem 1.5rem; text-align: center;"><i class="fa-regular fa-folder-open" style="font-size: 2rem; display: block; margin-bottom: 0.75rem; opacity: 0.4;"></i>មិនមានទិន្នន័យគ្រួសារដែលស្វែងរកទេ</td></tr>`;
     return;
   }
 
@@ -1210,13 +1210,13 @@ let allUsersList = [];
 async function loadUsersList() {
   const tbody = document.getElementById("users-table-tbody");
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> កំពុងផ្ទុកទិន្នន័យអ្នកប្រើប្រាស់...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="7" class="text-center text-dim" style="padding: 2rem; text-align: center;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1.4rem; display: block; margin-bottom: 0.5rem; color: #60a5fa;"></i> កំពុងផ្ទុកទិន្នន័យអ្នកប្រើប្រាស់...</td></tr>`;
 
   try {
     const res = await apiRequest("/api/auth/users");
     if (!res.ok) {
       if (res.status === 403) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-dim" style="padding: 2rem;"><i class="fa-solid fa-lock"></i> ត្រូវការសិទ្ធិជា Admin ដើម្បីគ្រប់គ្រងអ្នកប្រើប្រាស់</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-dim" style="padding: 2rem; text-align: center;"><i class="fa-solid fa-lock" style="font-size: 1.4rem; display: block; margin-bottom: 0.5rem; color: #f59e0b;"></i> ត្រូវការសិទ្ធិជា Admin ដើម្បីគ្រប់គ្រងអ្នកប្រើប្រាស់</td></tr>`;
         return;
       }
       throw new Error("Failed to load users");
@@ -1224,7 +1224,7 @@ async function loadUsersList() {
     allUsersList = await res.json();
     renderUsersTable();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-dim" style="padding: 2rem;">មិនអាចទាញយកទិន្នន័យអ្នកប្រើប្រាស់បានទេ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-dim" style="padding: 2rem; text-align: center;">មិនអាចទាញយកទិន្នន័យអ្នកប្រើប្រាស់បានទេ</td></tr>`;
   }
 }
 
@@ -1242,7 +1242,7 @@ function renderUsersTable() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-dim" style="padding: 2rem;">គ្មានគណនីត្រូវនឹងលក្ខខណ្ឌស្វែងរកទេ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-regular fa-user" style="font-size: 1.8rem; display: block; margin-bottom: 0.5rem; opacity: 0.4;"></i>គ្មានគណនីត្រូវនឹងលក្ខខណ្ឌស្វែងរកទេ</td></tr>`;
     return;
   }
 
@@ -1440,7 +1440,7 @@ let allAuditLogs = [];
 async function loadUserLogs() {
   const tbody = document.getElementById("logs-table-tbody");
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 1.5rem;"><i class="fa-solid fa-spinner fa-spin"></i> កំពុងទាញយកកំណត់ហេតុ...</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2rem; text-align: center;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1.4rem; display: block; margin-bottom: 0.5rem; color: #60a5fa;"></i> កំពុងទាញយកកំណត់ហេតុ...</td></tr>`;
 
   try {
     const res = await apiRequest("/api/auth/logs?limit=200");
@@ -1451,7 +1451,7 @@ async function loadUserLogs() {
     allAuditLogs = await res.json();
     renderLogsTable();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 1.5rem; color: #ef4444;">កំហុស៖ ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2rem; text-align: center; color: #ef4444;">កំហុស៖ ${err.message}</td></tr>`;
   }
 }
 
@@ -1472,7 +1472,7 @@ function renderLogsTable() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2rem;">គ្មានកំណត់ហេតុត្រូវនឹងលក្ខខណ្ឌស្វែងរកទេ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-regular fa-clock" style="font-size: 1.8rem; display: block; margin-bottom: 0.5rem; opacity: 0.4;"></i>គ្មានកំណត់ហេតុត្រូវនឹងលក្ខខណ្ឌស្វែងរកទេ</td></tr>`;
     return;
   }
 
