@@ -46,16 +46,41 @@ app.include_router(sync.router)
 
 # Static and Templates
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
-templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+static_dir = os.path.join(BASE_DIR, "static")
+if not os.path.exists(static_dir):
+    static_dir = os.path.join(root_dir, "app", "static")
+
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir, check_dir=False), name="static")
+
+templates_dir = os.path.join(BASE_DIR, "templates")
+if not os.path.exists(templates_dir):
+    templates_dir = os.path.join(root_dir, "app", "templates")
+
+try:
+    templates = Jinja2Templates(directory=templates_dir)
+except Exception:
+    templates = None
 
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_home(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    index_file = os.path.join(templates_dir, "index.html")
+    if os.path.exists(index_file):
+        with open(index_file, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    if templates:
+        return templates.TemplateResponse(request=request, name="index.html")
+    return HTMLResponse(content="<h1>Cambodia Population System is Running</h1>", status_code=200)
 
 
 @app.get("/print", response_class=HTMLResponse)
 async def serve_print(request: Request):
-    return templates.TemplateResponse(request=request, name="print_report.html")
+    print_file = os.path.join(templates_dir, "print_report.html")
+    if os.path.exists(print_file):
+        with open(print_file, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    if templates:
+        return templates.TemplateResponse(request=request, name="print_report.html")
+    return HTMLResponse(content="<h1>Print Report</h1>", status_code=200)
 
