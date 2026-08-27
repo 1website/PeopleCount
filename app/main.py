@@ -9,14 +9,18 @@ from app.database import engine, Base
 from app.seed import init_db_and_seed
 from app.api import auth, geo, families, reports, sync
 
-# Initialize database schema and seed default data
-init_db_and_seed()
-
 app = FastAPI(
     title="ប្រព័ន្ធគ្រប់គ្រងស្ថិតិប្រជាជន និងគ្រួសារកម្ពុជា (Cambodia Population & Family Census)",
     description="ប្រព័ន្ធគ្រប់គ្រងរដ្ឋបាលភូមិសាស្ត្រ ព័ត៌មានគ្រួសារ ចុះបញ្ជីសមាជិក របាយការណ៍ស្វ័យប្រវត្តិតាមស្តង់ដាររដ្ឋបាលកម្ពុជា និង Offline PWA Sync",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+def startup_event():
+    try:
+        init_db_and_seed()
+    except Exception as e:
+        print(f"Warning: Database initialization error: {e}")
 
 # CORS configuration
 app.add_middleware(
