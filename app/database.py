@@ -1,10 +1,12 @@
 import os
+import tempfile
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Check if running in Vercel serverless environment
 if os.getenv("VERCEL"):
-    default_db = "sqlite:////tmp/people_count.db"
+    db_path = os.path.join(tempfile.gettempdir(), "people_count.db")
+    default_db = f"sqlite:///{db_path}"
 else:
     default_db = "sqlite:///./people_count.db"
 
