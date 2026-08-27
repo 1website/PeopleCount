@@ -35,8 +35,9 @@ app.include_router(reports.router)
 app.include_router(sync.router)
 
 # Static and Templates
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
 @app.get("/", response_class=HTMLResponse)

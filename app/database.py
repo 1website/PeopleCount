@@ -2,7 +2,13 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./people_count.db")
+# Check if running in Vercel serverless environment
+if os.getenv("VERCEL"):
+    default_db = "sqlite:////tmp/people_count.db"
+else:
+    default_db = "sqlite:///./people_count.db"
+
+DATABASE_URL = os.getenv("DATABASE_URL", default_db)
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
