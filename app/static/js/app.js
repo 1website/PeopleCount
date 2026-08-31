@@ -13,6 +13,8 @@ const state = {
     villageId: null
   },
   familiesList: [],
+  familiesCurrentPage: 1,
+  familiesPageSize: 15,
   currentTab: "dashboard"
 };
 
@@ -775,6 +777,7 @@ async function loadFamiliesList() {
     if (poorFilter) params.append("poor_category", poorFilter);
     if (statusFilter) params.append("status_filter", statusFilter);
     if (searchVal) params.append("search", searchVal);
+    params.append("limit", "1000");
 
     let families = [];
     if (navigator.onLine) {
@@ -807,12 +810,25 @@ async function loadFamiliesList() {
 
 function renderFamiliesTable(families) {
   const tbody = document.getElementById("families-table-tbody");
+  const paginationContainer = document.getElementById("families-pagination-container");
   if (!tbody) return;
 
-  if (families.length === 0) {
+  const total = families.length;
+  const pageSize = state.familiesPageSize || 15;
+  const totalPages = Math.ceil(total / pageSize) || 1;
+
+  if (state.familiesCurrentPage > totalPages) state.familiesCurrentPage = totalPages;
+  if (state.familiesCurrentPage < 1) state.familiesCurrentPage = 1;
+
+  if (total === 0) {
     tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 3rem 1.5rem; text-align: center;"><i class="fa-regular fa-folder-open" style="font-size: 2rem; display: block; margin-bottom: 0.75rem; opacity: 0.4;"></i>មិនមានទិន្នន័យគ្រួសារដែលស្វែងរកទេ</td></tr>`;
+    if (paginationContainer) paginationContainer.innerHTML = "";
     return;
   }
+
+  const startIdx = (state.familiesCurrentPage - 1) * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, total);
+  const pageItems = families.slice(startIdx, endIdx);
 
   const poorBadgeMap = {
     "IDPOOR_1": `<span class="badge-tag poor1">ក្រ១ (IDPoor 1)</span>`,
@@ -826,9 +842,9 @@ function renderFamiliesTable(families) {
     "REJECTED": `<span class="badge-tag dropout"><i class="fa-solid fa-xmark"></i> បដិសេធ</span>`
   };
 
-  tbody.innerHTML = families.map((f, index) => `
+  tbody.innerHTML = pageItems.map((f, index) => `
     <tr>
-      <td class="text-center">${index + 1}</td>
+      <td class="text-center">${startIdx + index + 1}</td>
       <td>
         <strong style="color: #60a5fa;">${f.family_code}</strong>
         ${f.is_offline ? `<span class="badge-tag poor2" style="font-size: 0.65rem; margin-left: 4px;">Offline</span>` : ''}
@@ -869,6 +885,91 @@ function renderFamiliesTable(families) {
 
   tbody.querySelectorAll(".btn-delete-family").forEach(btn => {
     btn.addEventListener("click", () => deleteFamily(btn.getAttribute("data-id")));
+  });
+
+  renderFamiliesPagination(total, totalPages, startIdx, endIdx);
+}
+
+function renderFamiliesPagination(total, totalPages, startIdx, endIdx) {
+  const container = document.getElementById("families-pagination-container");
+  if (!container) return;
+
+  if (total <= 0) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const currentPage = state.familiesCurrentPage;
+
+  // Build page numbers list
+  const pages = [];
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push("...");
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+    for (let i = start; i <= end; i++) {
+      if (!pages.includes(i)) pages.push(i);
+    }
+    if (currentPage < totalPages - 2) pages.push("...");
+    if (!pages.includes(totalPages)) pages.push(totalPages);
+  }
+
+  container.innerHTML = `
+    <div class="pagination-info">
+      បង្ហាញ <strong style="color: #60a5fa;">${startIdx + 1} - ${endIdx}</strong> នៃ <strong style="color: var(--gold-light);">${total}</strong> គ្រួសារសរុប <span class="badge-tag general" style="margin-left: 6px; font-size: 0.72rem; padding: 2px 7px;">១៥ ក្នុង ១ ទំព័រ</span>
+    </div>
+
+    <div class="pagination-controls">
+      <button type="button" class="pagination-btn btn-prev-page" ${currentPage <= 1 ? 'disabled' : ''} title="ទំព័រមុន">
+        <i class="fa-solid fa-chevron-left"></i> មុន
+      </button>
+
+      ${pages.map(p => {
+        if (p === "...") {
+          return `<span class="pagination-ellipsis">...</span>`;
+        }
+        return `
+          <button type="button" class="pagination-btn ${p === currentPage ? 'active' : ''} btn-page-num" data-page="${p}">
+            ${p}
+          </button>
+        `;
+      }).join("")}
+
+      <button type="button" class="pagination-btn btn-next-page" ${currentPage >= totalPages ? 'disabled' : ''} title="ទំព័របន្ទាប់">
+        បន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  `;
+
+  // Attach event listeners
+  container.querySelector(".btn-prev-page")?.addEventListener("click", () => {
+    if (state.familiesCurrentPage > 1) {
+      state.familiesCurrentPage--;
+      renderFamiliesTable(state.familiesList);
+      document.getElementById("view-families")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+
+  container.querySelector(".btn-next-page")?.addEventListener("click", () => {
+    if (state.familiesCurrentPage < totalPages) {
+      state.familiesCurrentPage++;
+      renderFamiliesTable(state.familiesList);
+      document.getElementById("view-families")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  });
+
+  container.querySelectorAll(".btn-page-num").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const page = parseInt(btn.getAttribute("data-page"));
+      if (page && page !== state.familiesCurrentPage) {
+        state.familiesCurrentPage = page;
+        renderFamiliesTable(state.familiesList);
+        document.getElementById("view-families")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
   });
 }
 
@@ -1898,9 +1999,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // Filter list search & input debounce
-  document.getElementById("filter-list-search")?.addEventListener("input", () => loadFamiliesList());
-  document.getElementById("filter-list-poor")?.addEventListener("change", () => loadFamiliesList());
-  document.getElementById("filter-list-status")?.addEventListener("change", () => loadFamiliesList());
+  document.getElementById("filter-list-search")?.addEventListener("input", () => {
+    state.familiesCurrentPage = 1;
+    loadFamiliesList();
+  });
+  document.getElementById("filter-list-poor")?.addEventListener("change", () => {
+    state.familiesCurrentPage = 1;
+    loadFamiliesList();
+  });
+  document.getElementById("filter-list-status")?.addEventListener("change", () => {
+    state.familiesCurrentPage = 1;
+    loadFamiliesList();
+  });
 
   // Global Modal Closers and Triggers Delegation
   document.addEventListener("click", (e) => {

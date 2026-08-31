@@ -70,7 +70,7 @@ def list_families(
     status_filter: Optional[str] = None,
     search: Optional[str] = None,
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 1000,
     db: Session = Depends(get_db)
 ):
     query = db.query(Family)
