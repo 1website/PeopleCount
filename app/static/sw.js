@@ -1,4 +1,4 @@
-const CACHE_NAME = "cambodia-census-v1";
+const CACHE_NAME = "cambodia-census-v2";
 const ASSETS_TO_CACHE = [
   "/",
   "/static/css/style.css",
@@ -43,17 +43,27 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Network-first strategy for app assets: try network first, update cache, fallback to cache if offline
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(event.request).catch(() => {
-        // Fallback to offline index if html request
-        if (event.request.headers.get("accept")?.includes("text/html")) {
-          return caches.match("/");
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && event.request.method === "GET") {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
         }
-      });
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          if (event.request.headers.get("accept")?.includes("text/html")) {
+            return caches.match("/");
+          }
+        });
+      })
   );
 });
