@@ -21,8 +21,22 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js")
-      .then(reg => console.log("[PWA] Service Worker registered:", reg.scope))
+    navigator.serviceWorker.register("/static/sw.js?v=2.2")
+      .then(reg => {
+        console.log("[PWA] Service Worker registered:", reg.scope);
+        reg.update();
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                console.log("[PWA] New version detected, reloading page...");
+                window.location.reload();
+              }
+            });
+          }
+        });
+      })
       .catch(err => console.warn("[PWA] Service Worker failed:", err));
   });
 }

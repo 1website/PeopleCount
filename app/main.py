@@ -64,24 +64,52 @@ except Exception:
     templates = None
 
 
+@app.get("/sw.js")
+@app.get("/static/sw.js")
+async def serve_sw():
+    sw_file = os.path.join(static_dir, "sw.js")
+    if os.path.exists(sw_file):
+        with open(sw_file, "r", encoding="utf-8") as f:
+            return HTMLResponse(
+                content=f.read(),
+                media_type="application/javascript",
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0"
+                }
+            )
+    return HTMLResponse(content="", status_code=404)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_home(request: Request):
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    }
     index_file = os.path.join(templates_dir, "index.html")
     if os.path.exists(index_file):
         with open(index_file, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
+            return HTMLResponse(content=f.read(), headers=headers)
     if templates:
-        return templates.TemplateResponse(request=request, name="index.html")
-    return HTMLResponse(content="<h1>Cambodia Population System is Running</h1>", status_code=200)
+        return templates.TemplateResponse(request=request, name="index.html", headers=headers)
+    return HTMLResponse(content="<h1>Cambodia Population System is Running</h1>", status_code=200, headers=headers)
 
 
 @app.get("/print", response_class=HTMLResponse)
 async def serve_print(request: Request):
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    }
     print_file = os.path.join(templates_dir, "print_report.html")
     if os.path.exists(print_file):
         with open(print_file, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
+            return HTMLResponse(content=f.read(), headers=headers)
     if templates:
-        return templates.TemplateResponse(request=request, name="print_report.html")
-    return HTMLResponse(content="<h1>Print Report</h1>", status_code=200)
+        return templates.TemplateResponse(request=request, name="print_report.html", headers=headers)
+    return HTMLResponse(content="<h1>Print Report</h1>", status_code=200, headers=headers)
 
