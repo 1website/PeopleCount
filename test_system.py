@@ -347,7 +347,118 @@ def test_backup_and_restore():
     bad_res = client.post("/api/backup/restore", headers=admin_headers, files=bad_files)
     assert bad_res.status_code == 400
 
-    print("[OK] Database 1-Click Backup Export & Restore integration test passed")
+def test_collector_permissions_and_family_management():
+    # 1. Login as collector
+    res = client.post("/api/auth/login", json={"username": "collector", "password": "collector123"})
+    assert res.status_code == 200
+    collector_headers = {"Authorization": f"Bearer {res.json()['access_token']}"}
+
+    # 2. Collector creates a family (status should default to PENDING_REVIEW)
+    vill_res = client.get("/api/geo/villages")
+    v_id = vill_res.json()[0]["id"]
+    create_payload = {
+        "village_id": v_id,
+        "poor_category": "GENERAL",
+        "address_note": "Original address",
+        "members": [
+            {
+                "full_name": "Test Collector Family Head",
+                "gender": "MALE",
+                "nationality": "Khmer",
+                "dob": "1990-01-01",
+                "relation": "HEAD",
+                "education_status": "PRIMARY",
+                "dropout_status": "ACTIVE",
+                "birth_cert": "0"
+            }
+        ]
+    }
+    create_res = client.post("/api/families", json=create_payload, headers=collector_headers)
+    assert create_res.status_code == 200
+    fam = create_res.json()
+    fam_id = fam["id"]
+    assert fam["status"] == "PENDING_REVIEW"
+
+    # 3. Collector can list families and view details
+    list_res = client.get("/api/families", headers=collector_headers)
+    assert list_res.status_code == 200
+    assert any(f["id"] == fam_id for f in list_res.json())
+
+    detail_res = client.get(f"/api/families/{fam_id}", headers=collector_headers)
+    assert detail_res.status_code == 200
+    assert detail_res.json()["family_code"] == fam["family_code"]
+
+    # 4. Collector can edit family info (poor_category and address_note)
+    update_res = client.put(
+        f"/api/families/{fam_id}",
+        json={"poor_category": "IDPOOR_1", "address_note": "Collector updated address", "status": "APPROVED"},
+        headers=collector_headers
+    )
+    assert update_res.status_code == 200
+    # Verify poor_category changed, but status remained PENDING_REVIEW (Collector cannot approve via PUT)
+    fam_check = client.get(f"/api/families/{fam_id}").json()
+    assert fam_check["poor_category"] == "IDPOOR_1"
+    assert fam_check["address_note"] == "Collector updated address"
+    assert fam_check["status"] == "PENDING_REVIEW"
+
+    # 5. Collector CANNOT approve family via status endpoint (Forbidden)
+    approve_attempt = client.patch(
+        f"/api/families/{fam_id}/status?new_status=APPROVED",
+        headers=collector_headers
+    )
+    assert approve_attempt.status_code == 403, "Collector must NOT be allowed to approve families"
+
+    # 6. Collector can add a member and edit a member
+    add_m_res = client.post(
+        f"/api/families/{fam_id}/members",
+        json={
+            "full_name": "Collector Added Member",
+            "gender": "FEMALE",
+            "nationality": "Khmer",
+            "dob": "2018-06-15",
+            "relation": "CHILD",
+            "education_status": "PRIMARY",
+            "dropout_status": "ACTIVE",
+            "birth_cert": "123"
+        },
+        headers=collector_headers
+    )
+    assert add_m_res.status_code == 200
+    new_m = add_m_res.json()
+    assert new_m["full_name"] == "Collector Added Member"
+
+    # Collector edits member
+    edit_m_res = client.put(
+        f"/api/families/members/{new_m['id']}",
+        json={
+            "full_name": "Collector Edited Member Name",
+            "gender": "FEMALE",
+            "nationality": "Khmer",
+            "dob": "2018-06-15",
+            "relation": "CHILD",
+            "education_status": "PRIMARY",
+            "dropout_status": "DROPOUT",
+            "dropout_grade": "ថ្នាក់ទី ៣",
+            "birth_cert": "999"
+        },
+        headers=collector_headers
+    )
+    assert edit_m_res.status_code == 200
+    assert edit_m_res.json()["full_name"] == "Collector Edited Member Name"
+    assert edit_m_res.json()["dropout_status"] == "DROPOUT"
+    assert edit_m_res.json()["birth_cert"] == "999"
+
+    # 7. Collector CANNOT delete family (Forbidden)
+    delete_attempt = client.delete(f"/api/families/{fam_id}", headers=collector_headers)
+    assert delete_attempt.status_code == 403, "Collector must NOT be allowed to delete families"
+
+    # 8. Clean up as Admin
+    admin_auth = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"}).json()
+    admin_headers = {"Authorization": f"Bearer {admin_auth['access_token']}"}
+    admin_del = client.delete(f"/api/families/{fam_id}", headers=admin_headers)
+    assert admin_del.status_code == 200
+
+    print("[OK] Collector permissions & family/member management (View/Edit/Add allowed, Approve/Delete forbidden) passed")
 
 
 if __name__ == "__main__":
@@ -355,6 +466,7 @@ if __name__ == "__main__":
     test_login_and_roles()
     test_geographic_hierarchy()
     test_family_and_member_registration()
+    test_collector_permissions_and_family_management()
     test_reporting_and_excel()
     test_offline_sync()
     test_user_management_crud()

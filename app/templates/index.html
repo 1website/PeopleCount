@@ -996,6 +996,54 @@
     </div>
   </div>
 
+  <!-- MODAL: EDIT FAMILY DETAILS -->
+  <div id="edit-family-modal" class="modal-backdrop" style="z-index: 1050;">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="fa-solid fa-pen-to-square" style="color: var(--gold-light);"></i>
+          <span id="edit-family-modal-title">កែសម្រួលព័ត៌មានគ្រួសារ</span>
+        </div>
+        <button type="button" class="modal-close" title="បិទផ្ទាំង"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <form id="form-edit-family">
+        <input type="hidden" id="edit-family-id" value="" />
+
+        <div class="modal-body">
+          <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div style="background: var(--bg-surface); padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+              <span class="text-dim" style="font-size: 0.82rem;">លេខកូដគ្រួសារ (Family Code)៖</span><br/>
+              <strong id="edit-family-code-display" style="font-size: 1.1rem; color: #60a5fa;">-</strong>
+            </div>
+
+            <div class="member-card-field-group">
+              <label for="edit-family-poor">ប្រភេទគ្រួសារ (Poverty Category) *</label>
+              <select id="edit-family-poor" class="form-select" style="width: 100%;" required>
+                <option value="GENERAL">ទូទៅ (General)</option>
+                <option value="IDPOOR_1">ក្រ១ (IDPoor 1 - ក្រីក្រខ្លាំង)</option>
+                <option value="IDPOOR_2">ក្រ២ (IDPoor 2 - ក្រីក្រមធ្យម)</option>
+              </select>
+            </div>
+
+            <div class="member-card-field-group">
+              <label for="edit-family-address">អាសយដ្ឋាន/ចំណាំបន្ថែម (Address & Notes)</label>
+              <textarea id="edit-family-address" class="form-input" rows="3"
+                placeholder="ឧ. ផ្ទះលេខ..., ខាងត្បូងវត្ត, ផ្លូវលំ..." style="width: 100%; resize: vertical;"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline modal-close">បោះបង់</button>
+          <button type="submit" id="btn-submit-edit-family" class="btn btn-primary" style="font-weight: 700;">
+            <i class="fa-solid fa-floppy-disk"></i> រក្សាទុកការកែប្រែ
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- DEDICATED FULLSCREEN LOGIN FORM SCREEN -->
   <div id="app-login-screen" class="login-screen-overlay" style="display: none;">
     <div class="login-box-card">

@@ -317,9 +317,11 @@ const TAB_TITLES = {
 };
 
 function switchTab(tabId) {
-  // If user role is COLLECTOR (non-admin), restrict access ONLY to registration tab
+  // If user role is COLLECTOR (non-admin), restrict access to registration and families tabs
   if (state.currentUser && state.currentUser.role !== "ADMIN") {
-    tabId = "registration";
+    if (tabId !== "registration" && tabId !== "families") {
+      tabId = "registration";
+    }
   }
 
   state.currentTab = tabId;
@@ -838,13 +840,15 @@ function renderFamiliesTable(families) {
       <td>${statusBadgeMap[f.status] || f.status}</td>
       <td class="text-center">
         <div style="display: inline-flex; gap: 0.4rem;">
-          <button class="btn btn-sm btn-outline btn-view-family" data-id="${f.id}" title="មើលលម្អិត">
+          <button class="btn btn-sm btn-outline btn-view-family" data-id="${f.id}" title="ពិនិត្យមើលលម្អិត">
             <i class="fa-solid fa-eye"></i> មើល
           </button>
           ${(!f.is_offline && (state.currentUser?.role === 'ADMIN' || state.currentUser?.role === 'REVIEWER')) ? `
             <button class="btn btn-sm btn-success btn-approve-family" data-id="${f.id}" title="អនុម័ត">
               <i class="fa-solid fa-check-double"></i>
             </button>
+          ` : ''}
+          ${(!f.is_offline && state.currentUser?.role === 'ADMIN') ? `
             <button class="btn btn-sm btn-danger btn-delete-family" data-id="${f.id}" title="លុប">
               <i class="fa-solid fa-trash"></i>
             </button>
@@ -899,12 +903,26 @@ async function openFamilyDetailModal(familyId) {
       "NONE": "មិនបានរៀន", "PRIMARY": "បឋមសិក្សា", "SECONDARY": "មធ្យមសិក្សា", "HIGHER": "ឧត្តមសិក្សា"
     };
 
+    const poorBadgeMap = {
+      "IDPOOR_1": `<span class="badge-tag poor1">ក្រ១ (IDPoor 1)</span>`,
+      "IDPOOR_2": `<span class="badge-tag poor2">ក្រ២ (IDPoor 2)</span>`,
+      "GENERAL": `<span class="badge-tag general">ទូទៅ</span>`
+    };
+
     modalContent.innerHTML = `
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; background: var(--bg-surface); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
         <div><span class="text-dim">លេខកូដគ្រួសារ៖</span> <br/><strong style="font-size: 1.1rem; color: #60a5fa;">${fam.family_code}</strong></div>
-        <div><span class="text-dim">ប្រភេទគ្រួសារ៖</span> <br/><strong>${fam.poor_category}</strong></div>
+        <div><span class="text-dim">ប្រភេទគ្រួសារ៖</span> <br/><strong>${poorBadgeMap[fam.poor_category] || fam.poor_category}</strong></div>
         <div><span class="text-dim">ទីតាំងរដ្ឋបាល៖</span> <br/><strong>ភូមិ ${fam.village_name_kh || '-'}, ឃុំ ${fam.commune_name_kh || '-'}</strong></div>
         <div><span class="text-dim">អាសយដ្ឋាន/ចំណាំ៖</span> <br/><strong>${fam.address_note || 'គ្មាន'}</strong></div>
+        ${!fam.is_offline ? `
+          <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; padding-top: 0.5rem; border-top: 1px dashed var(--border-color);">
+            <button type="button" class="btn btn-sm btn-outline btn-open-edit-family" 
+              data-family-id="${fam.id}" data-family-code="${fam.family_code}" data-poor="${fam.poor_category}" data-address="${(fam.address_note || '').replace(/"/g, '&quot;')}">
+              <i class="fa-solid fa-pen-to-square"></i> កែសម្រួលព័ត៌មានគ្រួសារ
+            </button>
+          </div>
+        ` : ''}
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
@@ -932,7 +950,7 @@ async function openFamilyDetailModal(familyId) {
               <th>ស្ថានភាពសិក្សា</th>
               <th>សំបុត្រកំណើត</th>
               <th>មុខរបរ</th>
-              <th style="text-align: center; width: 80px;">សកម្មភាព</th>
+              <th style="text-align: center; width: 110px;">សកម្មភាព</th>
             </tr>
           </thead>
           <tbody>
@@ -958,10 +976,16 @@ async function openFamilyDetailModal(familyId) {
                 <td>${m.occupation || '-'}</td>
                 <td class="text-center">
                   ${!fam.is_offline ? `
-                    <button type="button" class="btn btn-sm btn-danger btn-delete-single-member" 
-                      data-family-id="${fam.id}" data-member-id="${m.id}" data-name="${m.full_name}" title="លុបសមាជិក">
-                      <i class="fa-solid fa-trash"></i>
-                    </button>
+                    <div style="display: inline-flex; gap: 0.35rem;">
+                      <button type="button" class="btn btn-sm btn-outline btn-edit-single-member" 
+                        data-family-id="${fam.id}" data-family-code="${fam.family_code}" data-member='${JSON.stringify(m).replace(/'/g, "&#39;")}' title="កែប្រែសមាជិក">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-danger btn-delete-single-member" 
+                        data-family-id="${fam.id}" data-member-id="${m.id}" data-name="${m.full_name}" title="លុបសមាជិក">
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
+                    </div>
                   ` : '-'}
                 </td>
               </tr>
@@ -971,12 +995,37 @@ async function openFamilyDetailModal(familyId) {
       </div>
     `;
 
+    // Attach listener to Edit Family button
+    modalContent.querySelectorAll(".btn-open-edit-family").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const fId = btn.getAttribute("data-family-id");
+        const fCode = btn.getAttribute("data-family-code");
+        const fPoor = btn.getAttribute("data-poor");
+        const fAddress = btn.getAttribute("data-address");
+        openEditFamilyModal(fId, fCode, fPoor, fAddress);
+      });
+    });
+
     // Attach listener to + Add Member button
     modalContent.querySelectorAll(".btn-open-add-member").forEach(btn => {
       btn.addEventListener("click", () => {
         const fId = btn.getAttribute("data-family-id");
         const fCode = btn.getAttribute("data-family-code");
         openAddMemberModal(fId, fCode);
+      });
+    });
+
+    // Attach listener to Edit Member buttons
+    modalContent.querySelectorAll(".btn-edit-single-member").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const fId = btn.getAttribute("data-family-id");
+        const fCode = btn.getAttribute("data-family-code");
+        try {
+          const mData = JSON.parse(btn.getAttribute("data-member"));
+          openEditMemberModal(fId, fCode, mData);
+        } catch (e) {
+          console.error("Could not parse member data:", e);
+        }
       });
     });
 
@@ -995,7 +1044,66 @@ async function openFamilyDetailModal(familyId) {
   }
 }
 
-// --- Single Member Management (Add / Delete) ---
+// --- Family Details Edit Modal Management ---
+function openEditFamilyModal(familyId, familyCode, poorCategory, addressNote) {
+  const modal = document.getElementById("edit-family-modal");
+  if (!modal) return;
+
+  document.getElementById("edit-family-id").value = familyId || "";
+  document.getElementById("edit-family-code-display").textContent = familyCode || "-";
+  document.getElementById("edit-family-poor").value = poorCategory || "GENERAL";
+  document.getElementById("edit-family-address").value = addressNote || "";
+
+  modal.classList.add("active");
+}
+
+async function handleEditFamilyFormSubmit(e) {
+  e.preventDefault();
+  const familyId = document.getElementById("edit-family-id")?.value;
+  const poorCategory = document.getElementById("edit-family-poor")?.value;
+  const addressNote = document.getElementById("edit-family-address")?.value.trim();
+
+  if (!familyId) return;
+
+  const btn = document.getElementById("btn-submit-edit-family");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> កំពុងរក្សាទុក...`;
+  }
+
+  try {
+    const res = await apiRequest(`/api/families/${familyId}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        poor_category: poorCategory,
+        address_note: addressNote
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "បរាជ័យក្នុងការកែប្រែព័ត៌មានគ្រួសារ");
+    }
+
+    window.showToast("បានកែប្រែព័ត៌មានគ្រួសារដោយជោគជ័យ!", "success");
+    document.getElementById("edit-family-modal")?.classList.remove("active");
+
+    // Refresh Family Details Modal and list
+    openFamilyDetailModal(familyId);
+    loadFamiliesList();
+    loadDashboardStats();
+  } catch (err) {
+    console.error("Edit family error:", err);
+    window.showToast(err.message || "មានបញ្ហាក្នុងការកែប្រែព័ត៌មានគ្រួសារ", "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> រក្សាទុកការកែប្រែ`;
+    }
+  }
+}
+
+// --- Single Member Management (Add / Edit / Delete) ---
 function openAddMemberModal(familyId, familyCode) {
   const modal = document.getElementById("single-member-modal");
   if (!modal) return;
@@ -1023,9 +1131,36 @@ function openAddMemberModal(familyId, familyCode) {
   modal.classList.add("active");
 }
 
+function openEditMemberModal(familyId, familyCode, member) {
+  const modal = document.getElementById("single-member-modal");
+  if (!modal) return;
+
+  document.getElementById("single-member-family-id").value = familyId;
+  document.getElementById("single-member-id").value = member.id;
+  document.getElementById("single-member-name").value = member.full_name || "";
+  document.getElementById("single-member-gender").value = member.gender || "MALE";
+  document.getElementById("single-member-dob").value = member.dob || "";
+  document.getElementById("single-member-age-display").textContent = member.age || "0";
+  document.getElementById("single-member-relation").value = member.relation || "CHILD";
+  document.getElementById("single-member-edu").value = member.education_status || "PRIMARY";
+  document.getElementById("single-member-dropout").value = member.dropout_status || "ACTIVE";
+  document.getElementById("single-member-grade").value = member.dropout_grade || "";
+  document.getElementById("single-member-grade").placeholder = member.dropout_status === "DROPOUT" ? "ថ្នាក់ដែលបានបោះបង់ ឧ. ថ្នាក់ទី ៧" : "ថ្នាក់ដែលកំពុងរៀន ឧ. ថ្នាក់ទី ៥";
+  document.getElementById("single-member-occupation").value = member.occupation || "";
+  document.getElementById("single-member-birthcert").value = member.birth_cert || "0";
+
+  const titleEl = document.getElementById("single-member-modal-title");
+  if (titleEl) {
+    titleEl.textContent = `កែសម្រួលព័ត៌មានសមាជិក៖ ${member.full_name} (${familyCode})`;
+  }
+
+  modal.classList.add("active");
+}
+
 async function handleSingleMemberFormSubmit(e) {
   e.preventDefault();
   const familyId = document.getElementById("single-member-family-id")?.value;
+  const memberId = document.getElementById("single-member-id")?.value;
   const fullName = document.getElementById("single-member-name")?.value.trim();
   const gender = document.getElementById("single-member-gender")?.value || "MALE";
   const dob = document.getElementById("single-member-dob")?.value;
@@ -1064,17 +1199,21 @@ async function handleSingleMemberFormSubmit(e) {
   }
 
   try {
-    const res = await apiRequest(`/api/families/${familyId}/members`, {
-      method: "POST",
+    const url = memberId ? `/api/families/members/${memberId}` : `/api/families/${familyId}/members`;
+    const method = memberId ? "PUT" : "POST";
+
+    const res = await apiRequest(url, {
+      method: method,
       body: JSON.stringify(payload)
     });
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.detail || "បរាជ័យក្នុងការបន្ថែមសមាជិក");
+      throw new Error(err.detail || (memberId ? "បរាជ័យក្នុងការកែប្រែសមាជិក" : "បរាជ័យក្នុងការបន្ថែមសមាជិក"));
     }
 
-    window.showToast(`បានបន្ថែមសមាជិក "${fullName}" ដោយជោគជ័យ!`, "success");
+    const actionText = memberId ? "បានកែប្រែព័ត៌មានសមាជិក" : "បានបន្ថែមសមាជិក";
+    window.showToast(`${actionText} "${fullName}" ដោយជោគជ័យ!`, "success");
     document.getElementById("single-member-modal")?.classList.remove("active");
 
     // Refresh Family Details Modal and list
@@ -1082,8 +1221,8 @@ async function handleSingleMemberFormSubmit(e) {
     loadFamiliesList();
     loadDashboardStats();
   } catch (err) {
-    console.error("Add member error:", err);
-    window.showToast(err.message || "មានបញ្ហាក្នុងការបន្ថែមសមាជិក", "error");
+    console.error("Member submit error:", err);
+    window.showToast(err.message || "មានបញ្ហាក្នុងការរក្សាទុកសមាជិក", "error");
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -1677,17 +1816,17 @@ function updateUserPillUI() {
       if (navUsers) navUsers.style.display = "flex";
       if (navBackup) navBackup.style.display = "flex";
     } else {
-      // COLLECTOR (អ្នកស្រង់ទិន្នន័យ): Show ONLY 'ចុះឈ្មោះគ្រួសារ និងបញ្ចូលសមាជិក'
-      if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-user-pen"></i> មុខងារចុះឈ្មោះ (Collector)`;
+      // COLLECTOR (អ្នកស្រង់ទិន្នន័យ): Show 'ចុះឈ្មោះគ្រួសារ' and 'បញ្ជីគ្រួសារ និងពិនិត្យ'
+      if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-user-pen"></i> មុខងារអ្នកស្រង់ទិន្នន័យ (Collector)`;
       if (navDashboard) navDashboard.style.display = "none";
       if (navRegistration) navRegistration.style.display = "flex";
-      if (navFamilies) navFamilies.style.display = "none";
+      if (navFamilies) navFamilies.style.display = "flex";
       if (navGeo) navGeo.style.display = "none";
       if (navReports) navReports.style.display = "none";
       if (navUsers) navUsers.style.display = "none";
       if (navBackup) navBackup.style.display = "none";
 
-      if (state.currentTab !== "registration") {
+      if (state.currentTab !== "registration" && state.currentTab !== "families") {
         switchTab("registration");
       }
     }
@@ -1716,7 +1855,9 @@ async function checkAuthSession() {
         updateUserPillUI();
         hideLoginScreen();
         if (state.currentUser.role === "COLLECTOR") {
-          switchTab("registration");
+          if (state.currentTab !== "registration" && state.currentTab !== "families") {
+            switchTab("registration");
+          }
         }
         return true;
       }
@@ -1824,6 +1965,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Single Member Form Submit & Real-time DOB calculation
   document.getElementById("form-single-member")?.addEventListener("submit", handleSingleMemberFormSubmit);
+  
+  // Edit Family Form Submit
+  document.getElementById("form-edit-family")?.addEventListener("submit", handleEditFamilyFormSubmit);
   
   const smDob = document.getElementById("single-member-dob");
   const smAgeDisplay = document.getElementById("single-member-age-display");

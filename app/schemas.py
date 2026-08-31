@@ -180,6 +180,13 @@ class FamilyCreate(FamilyBase):
     offline_client_id: Optional[str] = None
 
 
+class FamilyUpdate(BaseModel):
+    poor_category: Optional[str] = None
+    address_note: Optional[str] = None
+    village_id: Optional[int] = None
+    status: Optional[str] = None
+
+
 class FamilyOut(FamilyBase):
     id: int
     family_code: str

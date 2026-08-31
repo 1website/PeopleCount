@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Family, Member, Village, Commune, District, Province, User
 from app.schemas import (
-    FamilyCreate, FamilyOut, FamilyDetailOut,
+    FamilyCreate, FamilyUpdate, FamilyOut, FamilyDetailOut,
     MemberCreate, MemberOut, MemberBase
 )
 from app.auth import require_user, require_role
@@ -176,7 +176,7 @@ def get_family(family_id: int, db: Session = Depends(get_db)):
 @router.put("/{family_id}")
 def update_family(
     family_id: int,
-    data: FamilyCreate,
+    data: FamilyUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_user)
 ):
@@ -184,9 +184,13 @@ def update_family(
     if not fam:
         raise HTTPException(status_code=404, detail="រកមិនឃើញព័ត៌មានគ្រួសារនេះទេ (Family not found)")
         
-    fam.poor_category = data.poor_category
-    fam.address_note = data.address_note
-    if current_user.role == "ADMIN":
+    if data.poor_category is not None:
+        fam.poor_category = data.poor_category
+    if data.address_note is not None:
+        fam.address_note = data.address_note
+    if data.village_id is not None:
+        fam.village_id = data.village_id
+    if current_user.role == "ADMIN" and data.status is not None:
         fam.status = data.status
         
     db.commit()
