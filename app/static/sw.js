@@ -1,4 +1,4 @@
-const CACHE_NAME = "cambodia-census-v2";
+const CACHE_NAME = "cambodia-census-v2.1";
 const ASSETS_TO_CACHE = [
   "/",
   "/static/css/style.css",

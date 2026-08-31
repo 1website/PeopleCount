@@ -1051,7 +1051,7 @@ async function openFamilyDetailModal(familyId) {
               <th>ស្ថានភាពសិក្សា</th>
               <th>សំបុត្រកំណើត</th>
               <th>មុខរបរ</th>
-              <th style="text-align: center; width: 110px;">សកម្មភាព</th>
+              <th style="text-align: center; min-width: 140px;">សកម្មភាព</th>
             </tr>
           </thead>
           <tbody>
@@ -1077,10 +1077,10 @@ async function openFamilyDetailModal(familyId) {
                 <td>${m.occupation || '-'}</td>
                 <td class="text-center">
                   ${!fam.is_offline ? `
-                    <div style="display: inline-flex; gap: 0.35rem;">
-                      <button type="button" class="btn btn-sm btn-outline btn-edit-single-member" 
-                        data-family-id="${fam.id}" data-family-code="${fam.family_code}" data-member='${JSON.stringify(m).replace(/'/g, "&#39;")}' title="កែប្រែសមាជិក">
-                        <i class="fa-solid fa-pen-to-square"></i>
+                    <div style="display: inline-flex; gap: 0.4rem; justify-content: center; align-items: center;">
+                      <button type="button" class="btn btn-sm btn-edit btn-edit-single-member" 
+                        data-family-id="${fam.id}" data-family-code="${fam.family_code}" data-member-id="${m.id}" title="កែសម្រួលព័ត៌មានសមាជិក">
+                        <i class="fa-solid fa-pen-to-square"></i> កែប្រែ
                       </button>
                       <button type="button" class="btn btn-sm btn-danger btn-delete-single-member" 
                         data-family-id="${fam.id}" data-member-id="${m.id}" data-name="${m.full_name}" title="លុបសមាជិក">
@@ -1121,11 +1121,12 @@ async function openFamilyDetailModal(familyId) {
       btn.addEventListener("click", () => {
         const fId = btn.getAttribute("data-family-id");
         const fCode = btn.getAttribute("data-family-code");
-        try {
-          const mData = JSON.parse(btn.getAttribute("data-member"));
+        const mId = btn.getAttribute("data-member-id");
+        const mData = (fam.members || []).find(x => String(x.id) === String(mId));
+        if (mData) {
           openEditMemberModal(fId, fCode, mData);
-        } catch (e) {
-          console.error("Could not parse member data:", e);
+        } else {
+          console.error("Could not find member data for id:", mId);
         }
       });
     });
@@ -1224,9 +1225,19 @@ function openAddMemberModal(familyId, familyCode) {
   document.getElementById("single-member-occupation").value = "";
   document.getElementById("single-member-birthcert").value = "0";
 
+  const iconEl = document.getElementById("single-member-modal-icon");
+  if (iconEl) {
+    iconEl.className = "fa-solid fa-user-plus";
+  }
+
   const titleEl = document.getElementById("single-member-modal-title");
   if (titleEl) {
     titleEl.textContent = `បន្ថែមសមាជិកថ្មីចូលគ្រួសារ (${familyCode})`;
+  }
+
+  const submitBtn = document.getElementById("btn-submit-single-member");
+  if (submitBtn) {
+    submitBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> រក្សាទុកសមាជិក`;
   }
 
   modal.classList.add("active");
@@ -1241,7 +1252,7 @@ function openEditMemberModal(familyId, familyCode, member) {
   document.getElementById("single-member-name").value = member.full_name || "";
   document.getElementById("single-member-gender").value = member.gender || "MALE";
   document.getElementById("single-member-dob").value = member.dob || "";
-  document.getElementById("single-member-age-display").textContent = member.age || "0";
+  document.getElementById("single-member-age-display").textContent = member.age !== undefined && member.age !== null ? member.age : calculateAgeFromDob(member.dob);
   document.getElementById("single-member-relation").value = member.relation || "CHILD";
   document.getElementById("single-member-edu").value = member.education_status || "PRIMARY";
   document.getElementById("single-member-dropout").value = member.dropout_status || "ACTIVE";
@@ -1250,9 +1261,19 @@ function openEditMemberModal(familyId, familyCode, member) {
   document.getElementById("single-member-occupation").value = member.occupation || "";
   document.getElementById("single-member-birthcert").value = member.birth_cert || "0";
 
+  const iconEl = document.getElementById("single-member-modal-icon");
+  if (iconEl) {
+    iconEl.className = "fa-solid fa-user-pen";
+  }
+
   const titleEl = document.getElementById("single-member-modal-title");
   if (titleEl) {
     titleEl.textContent = `កែសម្រួលព័ត៌មានសមាជិក៖ ${member.full_name} (${familyCode})`;
+  }
+
+  const submitBtn = document.getElementById("btn-submit-single-member");
+  if (submitBtn) {
+    submitBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> រក្សាទុកការកែប្រែ`;
   }
 
   modal.classList.add("active");
