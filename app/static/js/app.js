@@ -21,7 +21,7 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=2.2")
+    navigator.serviceWorker.register("/static/sw.js?v=2.3")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
@@ -578,9 +578,11 @@ function addMemberRow(initialData = {}) {
           <option value="DROPOUT" ${defaultDropout === 'DROPOUT' ? 'selected' : ''}>បោះបង់ការសិក្សា</option>
         </select>
         <input type="text" class="form-input member-dropout-grade" 
-          placeholder="${defaultDropout === 'DROPOUT' ? 'ថ្នាក់ដែលបោះបង់ ឧ. ថ្នាក់ទី ៧' : 'ថ្នាក់ដែលកំពុងរៀន ឧ. ថ្នាក់ទី ៥'}" 
+          placeholder="${defaultDropout === 'DROPOUT' ? 'ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)' : 'ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)'}" 
           value="${initialData.dropout_grade || ''}" 
-          style="margin-top: 0.35rem; width: 100%; font-size: 0.8rem;" />
+          inputmode="numeric" pattern="[0-9]*" title="សូមបញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9)"
+          style="margin-top: 0.35rem; width: 100%; font-size: 0.8rem; font-family: monospace; font-weight: 600;" />
+        <small class="text-dim" style="font-size: 0.72rem;">* បញ្ចូលតែលេខឡាតាំង (0-9) ឧ. 7, 8, 9...</small>
       </div>
 
       <div class="member-card-field-group">
@@ -598,6 +600,14 @@ function addMemberRow(initialData = {}) {
 
   container.appendChild(card);
   updateMemberIndices();
+
+  // Grade input constraint: Latin digits only
+  const gradeInput = card.querySelector(".member-dropout-grade");
+  if (gradeInput) {
+    gradeInput.addEventListener("input", (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+    });
+  }
 
   // Birth Certificate input constraint: Latin digits only, default 0
   const bcInput = card.querySelector(".member-birthcert");
@@ -623,12 +633,11 @@ function addMemberRow(initialData = {}) {
 
   // Dynamic Grade placeholder based on School Attendance
   const dropSelect = card.querySelector(".member-dropout");
-  const gradeInput = card.querySelector(".member-dropout-grade");
   dropSelect.addEventListener("change", (e) => {
     if (e.target.value === "DROPOUT") {
-      gradeInput.placeholder = "ថ្នាក់ដែលបោះបង់ ឧ. ថ្នាក់ទី ៧";
+      gradeInput.placeholder = "ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)";
     } else {
-      gradeInput.placeholder = "ថ្នាក់ដែលកំពុងរៀន ឧ. ថ្នាក់ទី ៥";
+      gradeInput.placeholder = "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
     }
   });
 
@@ -695,7 +704,8 @@ async function handleFamilyFormSubmit(e) {
     const relation = card.querySelector(".member-relation")?.value || "CHILD";
     const edu = card.querySelector(".member-edu")?.value || "PRIMARY";
     const dropout = card.querySelector(".member-dropout")?.value || "ACTIVE";
-    const dropoutGrade = card.querySelector(".member-dropout-grade")?.value || null;
+    const rawGrade = card.querySelector(".member-dropout-grade")?.value || "";
+    const dropoutGrade = rawGrade.replace(/[^0-9]/g, "").trim();
     const rawBc = card.querySelector(".member-birthcert")?.value || "0";
     const birthCert = rawBc.replace(/[^0-9]/g, "") || "0";
     const occ = card.querySelector(".member-occupation")?.value || "";
@@ -708,7 +718,7 @@ async function handleFamilyFormSubmit(e) {
       relation: relation,
       education_status: edu,
       dropout_status: dropout,
-      dropout_grade: dropoutGrade && dropoutGrade.trim() ? dropoutGrade.trim() : null,
+      dropout_grade: dropoutGrade ? dropoutGrade : null,
       birth_cert: birthCert,
       disability: "គ្មាន",
       occupation: occ,
@@ -1234,7 +1244,7 @@ function openAddMemberModal(familyId, familyCode) {
   document.getElementById("single-member-edu").value = "PRIMARY";
   document.getElementById("single-member-dropout").value = "ACTIVE";
   document.getElementById("single-member-grade").value = "";
-  document.getElementById("single-member-grade").placeholder = "ថ្នាក់ដែលកំពុងរៀន ឧ. ថ្នាក់ទី ៥";
+  document.getElementById("single-member-grade").placeholder = "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
   document.getElementById("single-member-grade").style.display = "block";
   document.getElementById("single-member-occupation").value = "";
   document.getElementById("single-member-birthcert").value = "0";
@@ -1271,7 +1281,7 @@ function openEditMemberModal(familyId, familyCode, member) {
   document.getElementById("single-member-edu").value = member.education_status || "PRIMARY";
   document.getElementById("single-member-dropout").value = member.dropout_status || "ACTIVE";
   document.getElementById("single-member-grade").value = member.dropout_grade || "";
-  document.getElementById("single-member-grade").placeholder = member.dropout_status === "DROPOUT" ? "ថ្នាក់ដែលបានបោះបង់ ឧ. ថ្នាក់ទី ៧" : "ថ្នាក់ដែលកំពុងរៀន ឧ. ថ្នាក់ទី ៥";
+  document.getElementById("single-member-grade").placeholder = member.dropout_status === "DROPOUT" ? "ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)" : "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
   document.getElementById("single-member-occupation").value = member.occupation || "";
   document.getElementById("single-member-birthcert").value = member.birth_cert || "0";
 
@@ -1303,7 +1313,8 @@ async function handleSingleMemberFormSubmit(e) {
   const relation = document.getElementById("single-member-relation")?.value || "CHILD";
   const edu = document.getElementById("single-member-edu")?.value || "PRIMARY";
   const dropout = document.getElementById("single-member-dropout")?.value || "ACTIVE";
-  const grade = document.getElementById("single-member-grade")?.value.trim() || null;
+  const rawGrade = document.getElementById("single-member-grade")?.value || "";
+  const grade = rawGrade.replace(/[^0-9]/g, "").trim();
   const occupation = document.getElementById("single-member-occupation")?.value.trim() || "";
   const rawBc = document.getElementById("single-member-birthcert")?.value || "0";
   const birthCert = rawBc.replace(/[^0-9]/g, "") || "0";
@@ -1321,7 +1332,7 @@ async function handleSingleMemberFormSubmit(e) {
     relation: relation,
     education_status: edu,
     dropout_status: dropout,
-    dropout_grade: grade && grade.trim() ? grade.trim() : null,
+    dropout_grade: grade ? grade : null,
     birth_cert: birthCert,
     disability: "គ្មាន",
     occupation: occupation,
@@ -2129,10 +2140,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (smDropout && smGrade) {
     smDropout.addEventListener("change", (e) => {
       if (e.target.value === "DROPOUT") {
-        smGrade.placeholder = "ថ្នាក់ដែលបោះបង់ ឧ. ថ្នាក់ទី ៧";
+        smGrade.placeholder = "ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)";
       } else {
-        smGrade.placeholder = "ថ្នាក់ដែលកំពុងរៀន ឧ. ថ្នាក់ទី ៥";
+        smGrade.placeholder = "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
       }
+    });
+  }
+
+  const smGradeInput = document.getElementById("single-member-grade");
+  if (smGradeInput) {
+    smGradeInput.addEventListener("input", (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, "");
     });
   }
 
