@@ -21,7 +21,7 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=2.3")
+    navigator.serviceWorker.register("/static/sw.js?v=2.4")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
@@ -1068,7 +1068,6 @@ async function openFamilyDetailModal(familyId) {
               <th>ល.រ</th>
               <th>គោត្តនាម-នាម</th>
               <th>ភេទ</th>
-              <th>ថ្ងៃខែឆ្នាំកំណើត</th>
               <th>អាយុ</th>
               <th>ឋានៈ</th>
               <th>កម្រិតវប្បធម៌</th>
@@ -1084,7 +1083,6 @@ async function openFamilyDetailModal(familyId) {
                 <td class="text-center">${idx + 1}</td>
                 <td><strong>${m.full_name}</strong></td>
                 <td><span class="badge-tag ${m.gender === 'MALE' ? 'male' : 'female'}">${m.gender === 'MALE' ? 'ប្រុស' : 'ស្រី'}</span></td>
-                <td>${m.dob}</td>
                 <td class="text-center"><strong>${m.age}</strong> ឆ្នាំ</td>
                 <td><span class="badge-tag general">${relationMap[m.relation] || m.relation}</span></td>
                 <td>${eduMap[m.education_status] || m.education_status}</td>
