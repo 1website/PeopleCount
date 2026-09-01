@@ -13,7 +13,20 @@ def login(creds: UserLogin, request: Request, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "127.0.0.1"
     user_agent = request.headers.get("user-agent", "")[:250]
 
-    user = db.query(User).filter(User.username == creds.username).first()
+    try:
+        user = db.query(User).filter(User.username == creds.username).first()
+    except Exception as e:
+        # If column was missing on serverless runtime, run migration and retry
+        try:
+            from app.seed import init_db_and_seed
+            init_db_and_seed()
+            user = db.query(User).filter(User.username == creds.username).first()
+        except Exception as retry_err:
+            print(f"Error querying user: {retry_err}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"បញ្ហាប្រព័ន្ធទិន្នន័យ (Database Error): {str(retry_err)}"
+            )
     if not user or not verify_password(creds.password, user.hashed_password):
         db.add(UserAuditLog(
             username=creds.username,

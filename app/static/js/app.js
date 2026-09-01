@@ -21,7 +21,7 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=2.8")
+    navigator.serviceWorker.register("/static/sw.js?v=3.0")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
@@ -2008,7 +2008,13 @@ async function handleSystemLoginSubmit(e) {
       body: JSON.stringify({ username, password })
     });
 
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      throw new Error(`បញ្ហាប្រព័ន្ធ Server (${res.status}) សូមព្យាយាមម្តងទៀត`);
+    }
+
     if (!res.ok) {
       throw new Error(data.detail || "ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ");
     }

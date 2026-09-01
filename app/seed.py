@@ -8,6 +8,41 @@ from app.api.families import calculate_age
 
 def init_db_and_seed(force: bool = False):
     Base.metadata.create_all(bind=engine)
+
+    # Automatic Schema Migration for newly added columns
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            # users.profile_picture
+            try:
+                conn.execute(text("ALTER TABLE users ADD COLUMN profile_picture TEXT"))
+                conn.commit()
+            except Exception:
+                pass
+
+            # families.offline_client_id
+            try:
+                conn.execute(text("ALTER TABLE families ADD COLUMN offline_client_id VARCHAR(100)"))
+                conn.commit()
+            except Exception:
+                pass
+
+            # members.is_studying
+            try:
+                conn.execute(text("ALTER TABLE members ADD COLUMN is_studying BOOLEAN DEFAULT 1"))
+                conn.commit()
+            except Exception:
+                pass
+
+            # members.dropout_grade
+            try:
+                conn.execute(text("ALTER TABLE members ADD COLUMN dropout_grade VARCHAR(20)"))
+                conn.commit()
+            except Exception:
+                pass
+    except Exception as e:
+        print(f"Migration error: {e}")
+
     db: Session = SessionLocal()
 
     if force:
