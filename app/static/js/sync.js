@@ -92,7 +92,7 @@ class SyncManager {
         }))
       };
 
-      const token = localStorage.getItem("access_token");
+      const token = sessionStorage.getItem("access_token");
       const headers = { "Content-Type": "application/json" };
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;

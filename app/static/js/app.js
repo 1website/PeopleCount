@@ -21,7 +21,7 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=2.7")
+    navigator.serviceWorker.register("/static/sw.js?v=2.8")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
@@ -89,7 +89,7 @@ function formatKhmerFullDate(date = new Date()) {
 
 // --- Auth & API Request Helpers ---
 async function apiRequest(url, options = {}) {
-  const token = localStorage.getItem("access_token");
+  const token = sessionStorage.getItem("access_token");
   const headers = options.headers || {};
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -1892,7 +1892,8 @@ async function handleSystemLoginSubmit(e) {
       throw new Error(data.detail || "ឈ្មោះអ្នកប្រើ ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ");
     }
 
-    localStorage.setItem("access_token", data.access_token);
+    sessionStorage.setItem("access_token", data.access_token);
+    localStorage.removeItem("access_token");
     state.currentUser = data.user_info;
     updateUserPillUI();
     hideLoginScreen();
@@ -1922,6 +1923,7 @@ async function handleSystemLogout() {
     } catch (e) {
       console.warn("Logout log failed:", e);
     }
+    sessionStorage.removeItem("access_token");
     localStorage.removeItem("access_token");
     state.currentUser = null;
     updateUserPillUI();
@@ -1989,9 +1991,10 @@ function updateUserPillUI() {
   }
 }
 
-// Check logged in user on start
+// Check logged in user on start (Session-based: requires login on every new browser session/window)
 async function checkAuthSession() {
-  const token = localStorage.getItem("access_token");
+  localStorage.removeItem("access_token"); // Clean any old persistent storage
+  const token = sessionStorage.getItem("access_token");
   if (token) {
     try {
       const res = await apiRequest("/api/auth/me");
@@ -2011,6 +2014,7 @@ async function checkAuthSession() {
     }
   }
   // No active session -> require login
+  sessionStorage.removeItem("access_token");
   localStorage.removeItem("access_token");
   state.currentUser = null;
   updateUserPillUI();
@@ -2260,7 +2264,7 @@ async function downloadBackupSnapshot() {
   btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> កំពុងទាញយកទិន្នន័យ...`;
 
   try {
-    const token = localStorage.getItem("access_token");
+    const token = sessionStorage.getItem("access_token");
     const res = await fetch("/api/backup/export", {
       headers: token ? { "Authorization": `Bearer ${token}` } : {}
     });
@@ -2360,7 +2364,7 @@ function setupBackupRestoreUI() {
       const formData = new FormData();
       formData.append("file", selectedRestoreFile);
 
-      const token = localStorage.getItem("access_token");
+      const token = sessionStorage.getItem("access_token");
       const res = await fetch("/api/backup/restore", {
         method: "POST",
         headers: token ? { "Authorization": `Bearer ${token}` } : {},
