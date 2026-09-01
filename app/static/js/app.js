@@ -21,7 +21,7 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=2.5")
+    navigator.serviceWorker.register("/static/sw.js?v=2.6")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
