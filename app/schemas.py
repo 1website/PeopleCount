@@ -23,6 +23,7 @@ class UserCreate(BaseModel):
     role: str = "COLLECTOR"  # ADMIN, REVIEWER, COLLECTOR
     assigned_level: str = "ALL"  # ALL, PROVINCE, DISTRICT, COMMUNE, VILLAGE
     assigned_geo_code: Optional[str] = None
+    profile_picture: Optional[str] = None
 
 
 class UserUpdate(BaseModel):
@@ -32,6 +33,7 @@ class UserUpdate(BaseModel):
     assigned_geo_code: Optional[str] = None
     password: Optional[str] = None
     is_active: Optional[bool] = None
+    profile_picture: Optional[str] = None
 
 
 
@@ -42,6 +44,7 @@ class UserOut(BaseModel):
     role: str
     assigned_level: str
     assigned_geo_code: Optional[str]
+    profile_picture: Optional[str] = None
     is_active: bool
 
     class Config:

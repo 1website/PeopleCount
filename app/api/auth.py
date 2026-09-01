@@ -71,7 +71,8 @@ def login(creds: UserLogin, request: Request, db: Session = Depends(get_db)):
             "full_name": user.full_name,
             "role": user.role,
             "assigned_level": user.assigned_level,
-            "assigned_geo_code": user.assigned_geo_code
+            "assigned_geo_code": user.assigned_geo_code,
+            "profile_picture": user.profile_picture
         }
     }
 
@@ -84,7 +85,8 @@ def get_me(current_user: User = Depends(require_user)):
         "full_name": current_user.full_name,
         "role": current_user.role,
         "assigned_level": current_user.assigned_level,
-        "assigned_geo_code": current_user.assigned_geo_code
+        "assigned_geo_code": current_user.assigned_geo_code,
+        "profile_picture": current_user.profile_picture
     }
 
 
@@ -113,6 +115,7 @@ def create_user(
         role=data.role,
         assigned_level=data.assigned_level,
         assigned_geo_code=data.assigned_geo_code,
+        profile_picture=data.profile_picture,
         is_active=True
     )
     db.add(new_user)
@@ -142,6 +145,8 @@ def update_user(
         user.assigned_geo_code = data.assigned_geo_code
     if data.is_active is not None:
         user.is_active = data.is_active
+    if data.profile_picture is not None:
+        user.profile_picture = data.profile_picture if data.profile_picture != "__REMOVE__" else None
     if data.password:
         user.hashed_password = hash_password(data.password)
 

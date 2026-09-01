@@ -233,6 +233,7 @@ async def restore_database_backup(
                 role=u["role"],
                 assigned_level=u.get("assigned_level", "ALL"),
                 assigned_geo_code=u.get("assigned_geo_code"),
+                profile_picture=u.get("profile_picture"),
                 is_active=u.get("is_active", True),
                 created_at=created_at
             ))

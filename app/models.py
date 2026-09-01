@@ -77,6 +77,7 @@ class User(Base):
     assigned_level = Column(String(20), default="ALL")
     # Geographic code of assigned jurisdiction (e.g., '12010101' for specific village)
     assigned_geo_code = Column(String(20), nullable=True)
+    profile_picture = Column(Text, nullable=True)  # Base64 image data URI or URL
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=now_cambodia)
 

@@ -26,7 +26,7 @@
   <meta http-equiv="Expires" content="0" />
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="/static/css/style.css?v=2.8" />
+  <link rel="stylesheet" href="/static/css/style.css?v=2.9" />
 </head>
 
 <body>
@@ -591,7 +591,8 @@
               <table class="custom-table">
                 <thead>
                   <tr>
-                    <th style="width: 50px; text-align: center;">ល.រ</th>
+                    <th style="width: 45px; text-align: center;">ល.រ</th>
+                    <th style="width: 60px; text-align: center;">រូបថត</th>
                     <th>ឈ្មោះពេញ (Full Name)</th>
                     <th>ឈ្មោះគណនី (Username)</th>
                     <th>តួនាទី (Role)</th>
@@ -1122,6 +1123,31 @@
         <input type="hidden" id="manage-user-id" value="" />
         <div class="modal-body">
           <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <!-- Profile Picture Upload Field -->
+            <div style="display: flex; align-items: center; gap: 1.25rem; background: var(--bg-surface); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+              <div style="position: relative; width: 72px; height: 72px; flex-shrink: 0;">
+                <img id="manage-user-avatar-preview" src="" alt="Profile Preview" 
+                  style="display: none; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); box-shadow: 0 4px 12px rgba(0,0,0,0.3);" />
+                <div id="manage-user-avatar-placeholder" 
+                  style="width: 72px; height: 72px; border-radius: 50%; background: rgba(59, 130, 246, 0.15); border: 2px dashed rgba(59, 130, 246, 0.4); display: flex; align-items: center; justify-content: center; color: #60a5fa; font-size: 1.6rem;">
+                  <i class="fa-solid fa-user"></i>
+                </div>
+              </div>
+              <div style="flex: 1;">
+                <label style="display: block; font-size: 0.84rem; font-weight: 600; color: #fff; margin-bottom: 0.25rem;">រូបថតគណនី (Profile Picture)</label>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  <input type="file" id="manage-user-avatar-input" accept="image/*" style="display: none;" />
+                  <button type="button" id="btn-choose-avatar" class="btn btn-sm btn-outline" style="font-size: 0.78rem;">
+                    <i class="fa-solid fa-camera"></i> ជ្រើសរើសរូបថត
+                  </button>
+                  <button type="button" id="btn-remove-avatar" class="btn btn-sm btn-danger" style="display: none; font-size: 0.78rem;" title="ដករូបថតចេញ">
+                    <i class="fa-solid fa-trash"></i> ដកចេញ
+                  </button>
+                </div>
+                <small class="text-dim" style="font-size: 0.7rem; margin-top: 0.25rem; display: block;">JPG, PNG, WebP (គាំទ្រការ Upload ផ្ទាល់)</small>
+              </div>
+            </div>
+
             <div>
               <label
                 style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: var(--text-muted);">គោត្តនាម
@@ -1193,9 +1219,9 @@
   </div>
 
   <!-- Scripts -->
-  <script src="/static/js/db.js?v=2.8"></script>
-  <script src="/static/js/sync.js?v=2.8"></script>
-  <script src="/static/js/app.js?v=2.8"></script>
+  <script src="/static/js/db.js?v=2.9"></script>
+  <script src="/static/js/sync.js?v=2.9"></script>
+  <script src="/static/js/app.js?v=2.9"></script>
 </body>
 
 </html>

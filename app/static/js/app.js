@@ -1514,6 +1514,82 @@ async function loadUsersList() {
   }
 }
 
+let currentEditingAvatar = null;
+
+function processAvatarImage(file, callback) {
+  if (!file || !file.type.startsWith("image/")) {
+    window.showToast("សូមជ្រើសរើសឯកសារជារូបភាព (JPG, PNG, WebP) ប៉ុណ្ណោះ", "error");
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const maxDim = 256;
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > maxDim) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        }
+      } else {
+        if (height > maxDim) {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+      const base64Data = canvas.toDataURL("image/jpeg", 0.85);
+      callback(base64Data);
+    };
+    img.onerror = () => {
+      window.showToast("មិនអាចដំណើរការរូបភាពបានទេ", "error");
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setupUserAvatarUI() {
+  const chooseBtn = document.getElementById("btn-choose-avatar");
+  const removeBtn = document.getElementById("btn-remove-avatar");
+  const fileInput = document.getElementById("manage-user-avatar-input");
+  const previewImg = document.getElementById("manage-user-avatar-preview");
+  const placeholder = document.getElementById("manage-user-avatar-placeholder");
+
+  chooseBtn?.addEventListener("click", () => fileInput?.click());
+
+  fileInput?.addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) {
+      processAvatarImage(e.target.files[0], (base64) => {
+        currentEditingAvatar = base64;
+        if (previewImg) {
+          previewImg.src = base64;
+          previewImg.style.display = "block";
+        }
+        if (placeholder) placeholder.style.display = "none";
+        if (removeBtn) removeBtn.style.display = "inline-flex";
+      });
+    }
+  });
+
+  removeBtn?.addEventListener("click", () => {
+    currentEditingAvatar = "__REMOVE__";
+    if (fileInput) fileInput.value = "";
+    if (previewImg) {
+      previewImg.src = "";
+      previewImg.style.display = "none";
+    }
+    if (placeholder) placeholder.style.display = "flex";
+    if (removeBtn) removeBtn.style.display = "none";
+  });
+}
+
 function renderUsersTable() {
   const tbody = document.getElementById("users-table-tbody");
   if (!tbody) return;
@@ -1528,7 +1604,7 @@ function renderUsersTable() {
   });
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-regular fa-user" style="font-size: 1.8rem; display: block; margin-bottom: 0.5rem; opacity: 0.4;"></i>គ្មានគណនីត្រូវនឹងលក្ខខណ្ឌស្វែងរកទេ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-regular fa-user" style="font-size: 1.8rem; display: block; margin-bottom: 0.5rem; opacity: 0.4;"></i>គ្មានគណនីត្រូវនឹងលក្ខខណ្ឌស្វែងរកទេ</td></tr>`;
     return;
   }
 
@@ -1545,9 +1621,15 @@ function renderUsersTable() {
     "VILLAGE": "ថ្នាក់ភូមិ"
   };
 
-  tbody.innerHTML = filtered.map((u, idx) => `
+  tbody.innerHTML = filtered.map((u, idx) => {
+    const avatarHtml = u.profile_picture ? 
+      `<img src="${u.profile_picture}" alt="${u.full_name}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1.5px solid var(--gold); display: block; margin: 0 auto; box-shadow: 0 2px 6px rgba(0,0,0,0.3);" />` : 
+      `<div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(59,130,246,0.15); color: #60a5fa; font-weight: 700; font-size: 0.88rem; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 1.5px solid rgba(59,130,246,0.35);">${u.full_name ? u.full_name[0].toUpperCase() : 'U'}</div>`;
+
+    return `
     <tr>
       <td class="text-center">${idx + 1}</td>
+      <td class="text-center">${avatarHtml}</td>
       <td><strong>${u.full_name}</strong></td>
       <td><code style="color: #60a5fa; background: rgba(37,99,235,0.1); padding: 2px 6px; border-radius: 4px;">${u.username}</code></td>
       <td>${roleBadgeMap[u.role] || u.role}</td>
@@ -1574,7 +1656,8 @@ function renderUsersTable() {
         </div>
       </td>
     </tr>
-  `).join("");
+  `;
+  }).join("");
 
   // Action listeners
   tbody.querySelectorAll(".btn-edit-user").forEach(btn => {
@@ -1604,6 +1687,17 @@ function openCreateUserModal() {
   document.getElementById("manage-user-level").value = "VILLAGE";
   document.getElementById("manage-user-geocode").value = "";
 
+  // Reset avatar UI
+  currentEditingAvatar = null;
+  const previewImg = document.getElementById("manage-user-avatar-preview");
+  const placeholder = document.getElementById("manage-user-avatar-placeholder");
+  const removeBtn = document.getElementById("btn-remove-avatar");
+  const fileInput = document.getElementById("manage-user-avatar-input");
+  if (fileInput) fileInput.value = "";
+  if (previewImg) { previewImg.src = ""; previewImg.style.display = "none"; }
+  if (placeholder) placeholder.style.display = "flex";
+  if (removeBtn) removeBtn.style.display = "none";
+
   document.getElementById("user-modal")?.classList.add("active");
 }
 
@@ -1623,6 +1717,23 @@ function openEditUserModal(userId) {
   document.getElementById("manage-user-role").value = user.role;
   document.getElementById("manage-user-level").value = user.assigned_level || "ALL";
   document.getElementById("manage-user-geocode").value = user.assigned_geo_code || "";
+
+  // Populate avatar UI
+  currentEditingAvatar = user.profile_picture || null;
+  const previewImg = document.getElementById("manage-user-avatar-preview");
+  const placeholder = document.getElementById("manage-user-avatar-placeholder");
+  const removeBtn = document.getElementById("btn-remove-avatar");
+  const fileInput = document.getElementById("manage-user-avatar-input");
+  if (fileInput) fileInput.value = "";
+  if (user.profile_picture) {
+    if (previewImg) { previewImg.src = user.profile_picture; previewImg.style.display = "block"; }
+    if (placeholder) placeholder.style.display = "none";
+    if (removeBtn) removeBtn.style.display = "inline-flex";
+  } else {
+    if (previewImg) { previewImg.src = ""; previewImg.style.display = "none"; }
+    if (placeholder) placeholder.style.display = "flex";
+    if (removeBtn) removeBtn.style.display = "none";
+  }
 
   document.getElementById("user-modal")?.classList.add("active");
 }
@@ -1649,7 +1760,8 @@ async function handleUserFormSubmit(e) {
         password: password,
         role: role,
         assigned_level: level,
-        assigned_geo_code: geoCode
+        assigned_geo_code: geoCode,
+        profile_picture: (currentEditingAvatar && currentEditingAvatar !== "__REMOVE__") ? currentEditingAvatar : null
       };
       const res = await apiRequest("/api/auth/users", {
         method: "POST",
@@ -1669,6 +1781,9 @@ async function handleUserFormSubmit(e) {
         assigned_geo_code: geoCode
       };
       if (password) payload.password = password;
+      if (currentEditingAvatar !== null) {
+        payload.profile_picture = currentEditingAvatar;
+      }
 
       const res = await apiRequest(`/api/auth/users/${userId}`, {
         method: "PUT",
@@ -1677,6 +1792,12 @@ async function handleUserFormSubmit(e) {
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.detail || "បរាជ័យក្នុងការកែប្រែគណនី");
+      }
+      const updatedUser = await res.json();
+      if (state.currentUser && state.currentUser.id === updatedUser.id) {
+        state.currentUser.profile_picture = updatedUser.profile_picture;
+        state.currentUser.full_name = updatedUser.full_name;
+        updateUserPillUI();
       }
       window.showToast("បានកែប្រែព័ត៌មានគណនីដោយជោគជ័យ", "success");
     }
@@ -1947,7 +2068,13 @@ function updateUserPillUI() {
   const navBackup = document.getElementById("nav-item-backup");
 
   if (user) {
-    if (sidebarAvatar) sidebarAvatar.textContent = user.full_name ? user.full_name[0].toUpperCase() : "U";
+    if (sidebarAvatar) {
+      if (user.profile_picture) {
+        sidebarAvatar.innerHTML = `<img src="${user.profile_picture}" alt="${user.full_name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />`;
+      } else {
+        sidebarAvatar.textContent = user.full_name ? user.full_name[0].toUpperCase() : "U";
+      }
+    }
     if (sidebarUsername) {
       sidebarUsername.innerHTML = `<strong>${user.full_name}</strong> <span class="role-tag ${user.role.toLowerCase()}" style="margin-left: 4px; font-size: 0.68rem; padding: 2px 6px;">${user.role}</span>`;
     }
@@ -2219,6 +2346,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (dateEl) {
     dateEl.textContent = formatKhmerFullDate(new Date());
   }
+
+  // Setup User Avatar Upload listeners
+  setupUserAvatarUI();
 
   // Setup Backup & Restore handlers
   setupBackupRestoreUI();
