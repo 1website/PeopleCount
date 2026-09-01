@@ -193,6 +193,11 @@ body {
   gap: 0.5rem;
 }
 
+#network-status-badge,
+#btn-manual-sync {
+  display: none !important;
+}
+
 /* App Main Content Area & Topbar */
 .app-main-wrapper {
   flex: 1;
