@@ -21,7 +21,7 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=2.6")
+    navigator.serviceWorker.register("/static/sw.js?v=2.7")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
@@ -2189,9 +2189,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Initialize first member row in form
   resetRegistrationForm();
 
-  // Mobile Sidebar Toggle
-  document.getElementById("btn-sidebar-toggle")?.addEventListener("click", () => {
-    document.getElementById("app-sidebar")?.classList.toggle("open");
+  // Sidebar Toggle (Desktop Collapse & Mobile Drawer)
+  const appLayout = document.querySelector(".app-layout");
+  const appSidebar = document.getElementById("app-sidebar");
+  const btnSidebarToggle = document.getElementById("btn-sidebar-toggle");
+
+  // Restore saved desktop sidebar preference
+  if (window.innerWidth > 1024 && localStorage.getItem("sidebar_collapsed") === "true") {
+    appLayout?.classList.add("sidebar-collapsed");
+  }
+
+  btnSidebarToggle?.addEventListener("click", () => {
+    if (window.innerWidth <= 1024) {
+      // Mobile Drawer Toggle
+      appSidebar?.classList.toggle("open");
+    } else {
+      // Desktop Collapse/Expand Toggle
+      const isCollapsed = appLayout?.classList.toggle("sidebar-collapsed");
+      localStorage.setItem("sidebar_collapsed", isCollapsed ? "true" : "false");
+    }
   });
 
   // Display Current Date in Khmer in Topbar

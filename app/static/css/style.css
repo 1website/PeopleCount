@@ -81,7 +81,12 @@ body {
   justify-content: space-between;
   padding: 1.25rem 1rem;
   z-index: 150;
-  transition: var(--transition-smooth);
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Desktop Collapsed Sidebar */
+.app-layout.sidebar-collapsed .app-sidebar {
+  margin-left: -290px;
 }
 
 .sidebar-header {
@@ -227,17 +232,31 @@ body {
 }
 
 .btn-sidebar-toggle {
-  display: none;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  color: #fff;
-  width: 36px;
-  height: 36px;
+  display: inline-flex;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #93c5fd;
+  width: 38px;
+  height: 38px;
   border-radius: var(--radius-sm);
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-sidebar-toggle:hover {
+  background: rgba(37, 99, 235, 0.25);
+  border-color: #3b82f6;
+  color: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
+}
+
+.btn-sidebar-toggle:active {
+  transform: scale(0.95);
 }
 
 .system-time-badge {
