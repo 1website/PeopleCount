@@ -21,7 +21,7 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=2.4")
+    navigator.serviceWorker.register("/static/sw.js?v=2.5")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
@@ -1068,13 +1068,13 @@ async function openFamilyDetailModal(familyId) {
               <th>ល.រ</th>
               <th>គោត្តនាម-នាម</th>
               <th>ភេទ</th>
-              <th>អាយុ</th>
+              <th style="white-space: nowrap;">អាយុ</th>
               <th>ឋានៈ</th>
               <th>កម្រិតវប្បធម៌</th>
               <th>ស្ថានភាពសិក្សា</th>
               <th>សំបុត្រកំណើត</th>
               <th>មុខរបរ</th>
-              <th style="text-align: center; min-width: 140px;">សកម្មភាព</th>
+              <th style="text-align: center; min-width: 90px; white-space: nowrap;">សកម្មភាព</th>
             </tr>
           </thead>
           <tbody>
@@ -1083,7 +1083,7 @@ async function openFamilyDetailModal(familyId) {
                 <td class="text-center">${idx + 1}</td>
                 <td><strong>${m.full_name}</strong></td>
                 <td><span class="badge-tag ${m.gender === 'MALE' ? 'male' : 'female'}">${m.gender === 'MALE' ? 'ប្រុស' : 'ស្រី'}</span></td>
-                <td class="text-center"><strong>${m.age}</strong> ឆ្នាំ</td>
+                <td class="text-center" style="white-space: nowrap;"><strong>${m.age}</strong> ឆ្នាំ</td>
                 <td><span class="badge-tag general">${relationMap[m.relation] || m.relation}</span></td>
                 <td>${eduMap[m.education_status] || m.education_status}</td>
                 <td>
@@ -1102,7 +1102,7 @@ async function openFamilyDetailModal(familyId) {
                     <div style="display: inline-flex; gap: 0.4rem; justify-content: center; align-items: center;">
                       <button type="button" class="btn btn-sm btn-edit btn-edit-single-member" 
                         data-family-id="${fam.id}" data-family-code="${fam.family_code}" data-member-id="${m.id}" title="កែសម្រួលព័ត៌មានសមាជិក">
-                        <i class="fa-solid fa-pen-to-square"></i> កែប្រែ
+                        <i class="fa-solid fa-pen-to-square"></i>
                       </button>
                       <button type="button" class="btn btn-sm btn-danger btn-delete-single-member" 
                         data-family-id="${fam.id}" data-member-id="${m.id}" data-name="${m.full_name}" title="លុបសមាជិក">
