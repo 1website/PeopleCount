@@ -111,6 +111,8 @@
         const poorMap = { "IDPOOR_1": "ក្រ១", "IDPOOR_2": "ក្រ២", "GENERAL": "ទូទៅ" };
         const relMap = { "HEAD": "មេគ្រួសារ", "SPOUSE": "ប្រពន្ធ/ប្តី", "CHILD": "កូន", "PARENT": "ឪពុក/ម្តាយ", "RELATIVE": "សាច់ញាតិ", "OTHER": "ផ្សេងៗ" };
         const eduMap = { "NONE": "មិនបានរៀន", "PRIMARY": "បឋម", "SECONDARY": "មធ្យម", "HIGHER": "ឧត្តម" };
+        const khmerToLatin = { '០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4', '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9' };
+        const toLatinDigits = (str) => str ? String(str).replace(/[០-៩]/g, d => khmerToLatin[d] || d) : '';
 
         for (const fam of families) {
           const detailRes = await fetch(`/api/families/${fam.id}`);
@@ -118,9 +120,10 @@
           const detail = await detailRes.json();
 
           for (const m of detail.members) {
-            let study = m.dropout_status === "DROPOUT" ? `បោះបង់ (${m.dropout_grade || ''})` : 
-                        m.dropout_status === "COMPLETED" ? (m.dropout_grade ? `បានបញ្ចប់ (${m.dropout_grade})` : "បានបញ្ចប់") :
-                        (m.dropout_grade ? `កំពុងរៀន (${m.dropout_grade})` : "កំពុងរៀន");
+            const cleanGrade = toLatinDigits(m.dropout_grade);
+            let study = m.dropout_status === "DROPOUT" ? `បោះបង់ (${cleanGrade || ''})` : 
+                        m.dropout_status === "COMPLETED" ? (cleanGrade ? `បានបញ្ចប់ (${cleanGrade})` : "បានបញ្ចប់") :
+                        (cleanGrade ? `កំពុងរៀន (${cleanGrade})` : "កំពុងរៀន");
             rowsHtml += `
               <tr>
                 <td>${seq}</td>

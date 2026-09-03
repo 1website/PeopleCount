@@ -69,6 +69,10 @@ window.showToast = function(message, type = "info") {
 
 // --- Khmer Date & Number Formatter Helpers ---
 const KHMER_DIGITS = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+const KHMER_TO_LATIN = {
+  '០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4',
+  '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9'
+};
 const KHMER_DAYS = ['អាទិត្យ', 'ច័ន្ទ', 'អង្គារ', 'ពុធ', 'ព្រហស្បតិ៍', 'សុក្រ', 'សៅរ៍'];
 const KHMER_MONTHS = [
   'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា',
@@ -77,6 +81,11 @@ const KHMER_MONTHS = [
 
 function toKhmerDigits(num) {
   return String(num).replace(/[0-9]/g, d => KHMER_DIGITS[d]);
+}
+
+function toLatinDigits(str) {
+  if (str === null || str === undefined) return '';
+  return String(str).replace(/[០-៩]/g, d => KHMER_TO_LATIN[d] || d);
 }
 
 function formatKhmerFullDate(date = new Date()) {
@@ -539,13 +548,20 @@ function renderDashboard(data) {
   // Dropout Grades Breakdown Table
   const dropTbody = document.getElementById("table-dropouts-breakdown");
   if (dropTbody) {
-    const grades = Object.entries(edu.dropout_breakdown || {});
+    const rawGrades = Object.entries(edu.dropout_breakdown || {});
+    // Consolidate grades after converting Khmer digits to Latin digits (e.g. ០ -> 0, ១ -> 1, ...)
+    const consolidated = {};
+    rawGrades.forEach(([gr, cnt]) => {
+      const latinGr = toLatinDigits(gr).trim();
+      consolidated[latinGr] = (consolidated[latinGr] || 0) + cnt;
+    });
+    const grades = Object.entries(consolidated);
     if (grades.length === 0) {
       dropTbody.innerHTML = `<tr><td colspan="2" class="text-center text-dim" style="padding: 1.5rem; text-align: center;">គ្មានទិន្នន័យបោះបង់ការសិក្សា</td></tr>`;
     } else {
       dropTbody.innerHTML = grades.map(([gr, cnt]) => `
         <tr>
-          <td><span class="badge-tag dropout">${gr}</span></td>
+          <td><span class="badge-tag dropout">${toLatinDigits(gr)}</span></td>
           <td class="text-right"><strong>${cnt}</strong> នាក់</td>
         </tr>
       `).join("");
@@ -637,7 +653,7 @@ function addMemberRow(initialData = {}) {
         </select>
         <input type="text" class="form-input member-dropout-grade" 
           placeholder="${defaultDropout === 'DROPOUT' ? 'ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)' : (defaultDropout === 'COMPLETED' ? 'កម្រិត/ថ្នាក់បញ្ចប់ (ឧ. 12, បរិញ្ញាបត្រ...)' : 'ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)')}" 
-          value="${initialData.dropout_grade || ''}" 
+          value="${initialData.dropout_grade ? toLatinDigits(initialData.dropout_grade) : ''}" 
           title="កម្រិតថ្នាក់ ឬកម្រិតបញ្ចប់"
           style="margin-top: 0.35rem; width: 100%; font-size: 0.8rem; font-weight: 600;" />
         <small class="text-dim member-grade-help" style="font-size: 0.72rem;">* ${defaultDropout === 'COMPLETED' ? 'អាចវាយបញ្ចូលជាអក្សរ ឬលេខឡាតាំងបាន' : 'បញ្ចូលតែលេខឡាតាំង (0-9) ឧ. 7, 8, 9...'}</small>
@@ -679,6 +695,7 @@ function addMemberRow(initialData = {}) {
     });
 
     gradeInput.addEventListener("input", (e) => {
+      e.target.value = toLatinDigits(e.target.value);
       if (dropSelect.value !== "COMPLETED") {
         e.target.value = e.target.value.replace(/[^0-9]/g, "");
       }
@@ -689,7 +706,7 @@ function addMemberRow(initialData = {}) {
   const bcInput = card.querySelector(".member-birthcert");
   if (bcInput) {
     bcInput.addEventListener("input", (e) => {
-      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+      e.target.value = toLatinDigits(e.target.value).replace(/[^0-9]/g, "");
     });
     bcInput.addEventListener("blur", (e) => {
       if (!e.target.value.trim()) e.target.value = "0";
@@ -794,14 +811,14 @@ async function handleFamilyFormSubmit(e) {
     const relation = card.querySelector(".member-relation")?.value || "CHILD";
     const edu = card.querySelector(".member-edu")?.value || "PRIMARY";
     const dropout = card.querySelector(".member-dropout")?.value || "ACTIVE";
-    const rawGrade = card.querySelector(".member-dropout-grade")?.value || "";
+    const rawGrade = toLatinDigits(card.querySelector(".member-dropout-grade")?.value || "");
     let dropoutGrade = null;
     if (dropout === "COMPLETED") {
       dropoutGrade = rawGrade.trim() || null;
     } else {
       dropoutGrade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
     }
-    const rawBc = card.querySelector(".member-birthcert")?.value || "0";
+    const rawBc = toLatinDigits(card.querySelector(".member-birthcert")?.value || "0");
     const birthCert = rawBc.replace(/[^0-9]/g, "") || "0";
     const occ = card.querySelector(".member-occupation")?.value || "";
 
@@ -1377,7 +1394,7 @@ function openEditMemberModal(familyId, familyCode, member) {
   document.getElementById("single-member-edu").value = member.education_status || "PRIMARY";
   const memberDropout = member.dropout_status || "ACTIVE";
   document.getElementById("single-member-dropout").value = memberDropout;
-  document.getElementById("single-member-grade").value = member.dropout_grade || "";
+  document.getElementById("single-member-grade").value = member.dropout_grade ? toLatinDigits(member.dropout_grade) : "";
   const smGradeInput = document.getElementById("single-member-grade");
   const smGradeHelp = document.getElementById("single-member-grade-help");
   if (memberDropout === "DROPOUT") {
@@ -1391,7 +1408,7 @@ function openEditMemberModal(familyId, familyCode, member) {
     if (smGradeHelp) smGradeHelp.textContent = "* បញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9) ឧ. 7, 8, 9...";
   }
   document.getElementById("single-member-occupation").value = member.occupation || "";
-  document.getElementById("single-member-birthcert").value = member.birth_cert || "0";
+  document.getElementById("single-member-birthcert").value = member.birth_cert ? toLatinDigits(member.birth_cert) : "0";
 
   const iconEl = document.getElementById("single-member-modal-icon");
   if (iconEl) {
@@ -1421,7 +1438,7 @@ async function handleSingleMemberFormSubmit(e) {
   const relation = document.getElementById("single-member-relation")?.value || "CHILD";
   const edu = document.getElementById("single-member-edu")?.value || "PRIMARY";
   const dropout = document.getElementById("single-member-dropout")?.value || "ACTIVE";
-  const rawGrade = document.getElementById("single-member-grade")?.value || "";
+  const rawGrade = toLatinDigits(document.getElementById("single-member-grade")?.value || "");
   let grade = null;
   if (dropout === "COMPLETED") {
     grade = rawGrade.trim() || null;
@@ -1429,7 +1446,7 @@ async function handleSingleMemberFormSubmit(e) {
     grade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
   }
   const occupation = document.getElementById("single-member-occupation")?.value.trim() || "";
-  const rawBc = document.getElementById("single-member-birthcert")?.value || "0";
+  const rawBc = toLatinDigits(document.getElementById("single-member-birthcert")?.value || "0");
   const birthCert = rawBc.replace(/[^0-9]/g, "") || "0";
 
   if (!familyId || !fullName || !dob) {
@@ -2406,6 +2423,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const smGradeInput = document.getElementById("single-member-grade");
   if (smGradeInput) {
     smGradeInput.addEventListener("input", (e) => {
+      e.target.value = toLatinDigits(e.target.value);
       if (smDropout && smDropout.value !== "COMPLETED") {
         e.target.value = e.target.value.replace(/[^0-9]/g, "");
       }
@@ -2415,7 +2433,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const smBc = document.getElementById("single-member-birthcert");
   if (smBc) {
     smBc.addEventListener("input", (e) => {
-      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+      e.target.value = toLatinDigits(e.target.value).replace(/[^0-9]/g, "");
     });
     smBc.addEventListener("blur", (e) => {
       if (!e.target.value.trim()) e.target.value = "0";

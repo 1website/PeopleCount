@@ -14,6 +14,19 @@ from app.auth import require_user
 
 router = APIRouter(prefix="/api/reports", tags=["Reporting and Analytics"])
 
+KHMER_TO_LATIN_DIGITS = {
+    '០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4',
+    '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9'
+}
+
+def khmer_to_latin_digits(text: Optional[str]) -> Optional[str]:
+    if not text:
+        return text
+    res = str(text)
+    for kh, lat in KHMER_TO_LATIN_DIGITS.items():
+        res = res.replace(kh, lat)
+    return res
+
 
 @router.get("/dashboard-stats")
 def get_dashboard_stats(
@@ -96,11 +109,12 @@ def get_dashboard_stats(
     edu_secondary = sum(1 for m in members if m.education_status == "SECONDARY")
     edu_higher = sum(1 for m in members if m.education_status == "HIGHER")
 
-    # Dropouts breakdown by grade
+    # Dropouts breakdown by grade (normalized to Latin digits)
     dropout_breakdown = {}
     for m in members:
         if m.dropout_status == "DROPOUT" and m.dropout_grade:
-            dropout_breakdown[m.dropout_grade] = dropout_breakdown.get(m.dropout_grade, 0) + 1
+            norm_grade = khmer_to_latin_digits(m.dropout_grade).strip()
+            dropout_breakdown[norm_grade] = dropout_breakdown.get(norm_grade, 0) + 1
 
     return {
         "families": {
@@ -264,11 +278,11 @@ def export_excel_report(
             birth_cert_kh = birth_cert_val if birth_cert_val not in ["0", "False", "None", ""] else "0 (គ្មាន)"
             edu_kh = edu_map.get(member.education_status, member.education_status)
             if member.dropout_status == "DROPOUT" and member.dropout_grade:
-                study_status_kh = f"បោះបង់ ({member.dropout_grade})"
+                study_status_kh = f"បោះបង់ ({khmer_to_latin_digits(member.dropout_grade)})"
             elif member.dropout_status == "COMPLETED" and member.dropout_grade:
-                study_status_kh = f"បានបញ្ចប់ ({member.dropout_grade})"
+                study_status_kh = f"បានបញ្ចប់ ({khmer_to_latin_digits(member.dropout_grade)})"
             elif member.dropout_status == "ACTIVE" and member.dropout_grade:
-                study_status_kh = f"កំពុងរៀន ({member.dropout_grade})"
+                study_status_kh = f"កំពុងរៀន ({khmer_to_latin_digits(member.dropout_grade)})"
             else:
                 study_status_kh = dropout_map.get(member.dropout_status, member.dropout_status)
 
