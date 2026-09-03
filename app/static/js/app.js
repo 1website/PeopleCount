@@ -149,6 +149,36 @@ async function loadGeographicHierarchy() {
   populateGeoDropdowns();
 }
 
+// Helper to find default/fallback village robustly (Prasat Trav or first available)
+function findDefaultVillage(geoTree) {
+  if (!geoTree || !Array.isArray(geoTree) || geoTree.length === 0) return null;
+  // 1. Look for Prasat Trav (17010307)
+  for (const prov of geoTree) {
+    for (const dist of (prov.districts || [])) {
+      for (const comm of (dist.communes || [])) {
+        for (const vill of (comm.villages || [])) {
+          if (vill.code === "17010307" || String(vill.name_kh).includes("ប្រាសាទត្រាវ") || String(vill.name_en).toLowerCase().includes("prasat trav")) {
+            return { prov, dist, comm, vill };
+          }
+        }
+      }
+    }
+  }
+  // 2. Fallback to the first village anywhere in the tree
+  for (const prov of geoTree) {
+    for (const dist of (prov.districts || [])) {
+      for (const comm of (dist.communes || [])) {
+        for (const vill of (comm.villages || [])) {
+          if (vill && vill.id) {
+            return { prov, dist, comm, vill };
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function populateGeoDropdowns() {
   // 1. Dashboard filters
   const provSelect = document.getElementById("filter-province");
@@ -166,29 +196,42 @@ function populateFormGeo() {
   const fDist = document.getElementById("form-district");
   const fComm = document.getElementById("form-commune");
   const fVill = document.getElementById("form-village");
-  if (!fProv) return;
+  if (!fVill) return;
 
-  fProv.innerHTML = `<option value="">-- ជ្រើសរើសខេត្ត/រាជធានី --</option>` +
-    state.geoTree.map(p => `<option value="${p.id}">${p.name_kh} (${p.code})</option>`).join("");
-
-  // Auto-select when single locality exists (ភូមិប្រាសាទត្រាវ ឃុំគោកដូង ស្រុកអង្គរជុំ ខេត្តសៀមរាប)
-  if (state.geoTree.length === 1) {
-    const prov = state.geoTree[0];
-    fProv.value = prov.id;
-    if (fDist && prov.districts.length === 1) {
-      const dist = prov.districts[0];
+  const defaultGeo = findDefaultVillage(state.geoTree);
+  if (defaultGeo) {
+    const { prov, dist, comm, vill } = defaultGeo;
+    if (fProv) {
+      fProv.innerHTML = `<option value="${prov.id}" selected>${prov.name_kh} (${prov.code})</option>`;
+      fProv.value = prov.id;
+    }
+    if (fDist) {
       fDist.innerHTML = `<option value="${dist.id}" selected>${dist.name_kh} (${dist.code})</option>`;
-      if (fComm && dist.communes.length === 1) {
-        const comm = dist.communes[0];
-        fComm.innerHTML = `<option value="${comm.id}" selected>${comm.name_kh} (${comm.code})</option>`;
-        if (fVill && comm.villages.length === 1) {
-          const vill = comm.villages[0];
-          fVill.innerHTML = `<option value="${vill.id}" data-code="${vill.code}" selected>${vill.name_kh} (${vill.code})</option>`;
-          updatePreviewFamilyCode();
-        }
-      }
+      fDist.value = dist.id;
+    }
+    if (fComm) {
+      fComm.innerHTML = `<option value="${comm.id}" selected>${comm.name_kh} (${comm.code})</option>`;
+      fComm.value = comm.id;
+    }
+    if (fVill) {
+      fVill.innerHTML = `<option value="${vill.id}" data-code="${vill.code}" selected>${vill.name_kh} (${vill.code})</option>`;
+      fVill.value = vill.id;
+    }
+
+    const locTitle = document.getElementById("form-locality-title");
+    const locSub = document.getElementById("form-locality-sub");
+    const locCode = document.getElementById("form-locality-code");
+    if (locTitle) locTitle.textContent = `${vill.name_kh} ${comm.name_kh}`;
+    if (locSub) locSub.textContent = `${dist.name_kh} ${prov.name_kh}`;
+    if (locCode) locCode.textContent = `កូដរដ្ឋបាល៖ ${vill.code}`;
+  } else {
+    // Fallback if geoTree is not yet available
+    if (fVill && (!fVill.value || fVill.options.length === 0)) {
+      fVill.innerHTML = `<option value="1" data-code="17010307" selected>ភូមិប្រាសាទត្រាវ (17010307)</option>`;
+      fVill.value = "1";
     }
   }
+  updatePreviewFamilyCode();
 }
 
 // Cascade Event Listeners
@@ -312,13 +355,21 @@ function updatePreviewFamilyCode() {
   const fVill = document.getElementById("form-village");
   const codeEl = document.getElementById("preview-family-code");
   if (!codeEl) return;
+
+  let vCode = null;
   const selectedOpt = fVill?.options[fVill.selectedIndex];
   if (selectedOpt && selectedOpt.value) {
-    const vCode = selectedOpt.getAttribute("data-code");
-    codeEl.innerHTML = `<span class="badge-tag general">កូដគ្រួសារស្វ័យប្រវត្តិ៖ <strong>FAM-${vCode}-XXXX</strong></span>`;
+    vCode = selectedOpt.getAttribute("data-code") || "17010307";
   } else {
-    codeEl.innerHTML = `<span class="text-dim">ជ្រើសរើសភូមិដើម្បីបង្កើតលេខកូដសម្គាល់គ្រួសារ (Family ID)</span>`;
+    const defaultGeo = findDefaultVillage(state.geoTree);
+    if (defaultGeo && defaultGeo.vill) {
+      vCode = defaultGeo.vill.code;
+    } else {
+      vCode = "17010307";
+    }
   }
+
+  codeEl.innerHTML = `<span class="badge-tag general"><i class="fa-solid fa-qrcode" style="margin-right: 4px;"></i> កូដគ្រួសារស្វ័យប្រវត្តិ៖ <strong>FAM-${vCode}-XXXX</strong></span>`;
 }
 
 // --- Navigation Tabs ---
@@ -364,10 +415,16 @@ function switchTab(tabId) {
   if (tabId === "backup") loadBackupStats();
 }
 
-window.openRegistrationModal = function() {
+window.openRegistrationModal = async function() {
   const modal = document.getElementById("family-registration-modal");
   if (!modal) return;
   modal.classList.add("active");
+
+  if (!state.geoTree || state.geoTree.length === 0) {
+    await loadGeographicHierarchy();
+  }
+  populateFormGeo();
+
   const container = document.getElementById("form-members-container");
   if (!container || container.children.length === 0) {
     resetRegistrationForm();
@@ -676,17 +733,41 @@ async function handleFamilyFormSubmit(e) {
   const villSelect = document.getElementById("form-village");
   let villageId = parseInt(villSelect?.value);
 
-  // If villageId is missing or single village environment, fall back to first village in tree
-  if (!villageId && state.geoTree.length > 0) {
-    const firstProv = state.geoTree[0];
-    if (firstProv.districts.length > 0 && firstProv.districts[0].communes.length > 0 && firstProv.districts[0].communes[0].villages.length > 0) {
-      villageId = firstProv.districts[0].communes[0].villages[0].id;
+  // If villageId is missing, resolve using findDefaultVillage
+  if (!villageId) {
+    const defaultGeo = findDefaultVillage(state.geoTree);
+    if (defaultGeo && defaultGeo.vill) {
+      villageId = defaultGeo.vill.id;
+      if (villSelect) {
+        villSelect.innerHTML = `<option value="${defaultGeo.vill.id}" data-code="${defaultGeo.vill.code}" selected>${defaultGeo.vill.name_kh}</option>`;
+        villSelect.value = defaultGeo.vill.id;
+      }
     }
   }
 
+  // Emergency fetch if geoTree was completely empty
+  if (!villageId && navigator.onLine) {
+    try {
+      const res = await apiRequest("/api/geo/full-hierarchy");
+      if (res.ok) {
+        state.geoTree = await res.json();
+        const defaultGeo = findDefaultVillage(state.geoTree);
+        if (defaultGeo && defaultGeo.vill) {
+          villageId = defaultGeo.vill.id;
+          if (villSelect) {
+            villSelect.innerHTML = `<option value="${defaultGeo.vill.id}" data-code="${defaultGeo.vill.code}" selected>${defaultGeo.vill.name_kh}</option>`;
+            villSelect.value = defaultGeo.vill.id;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Emergency geo fetch error:", err);
+    }
+  }
+
+  // Ultimate fallback to default village ID 1
   if (!villageId) {
-    window.showToast("សូមជ្រើសរើសភូមិជាមុនសិន", "error");
-    return;
+    villageId = 1;
   }
 
   const poorCategory = document.querySelector('input[name="form-poor"]:checked')?.value || "GENERAL";
@@ -795,6 +876,7 @@ function resetRegistrationForm() {
   const addrEl = document.getElementById("form-address-note");
   if (addrEl) addrEl.value = "";
   memberRowCount = 0;
+  populateFormGeo();
   // Add initial Head of Family card
   addMemberRow({ relation: "HEAD" });
   updatePreviewFamilyCode();
