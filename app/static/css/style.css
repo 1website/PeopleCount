@@ -1023,6 +1023,12 @@ body {
   color: var(--success);
 }
 
+.badge-tag.completed {
+  background: rgba(14, 165, 233, 0.18);
+  color: #38bdf8;
+  border: 1px solid rgba(14, 165, 233, 0.4);
+}
+
 .badge-tag.pending {
   background: var(--warning-bg);
   color: var(--warning);

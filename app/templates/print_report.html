@@ -119,6 +119,7 @@
 
           for (const m of detail.members) {
             let study = m.dropout_status === "DROPOUT" ? `បោះបង់ (${m.dropout_grade || ''})` : 
+                        m.dropout_status === "COMPLETED" ? (m.dropout_grade ? `បានបញ្ចប់ (${m.dropout_grade})` : "បានបញ្ចប់") :
                         (m.dropout_grade ? `កំពុងរៀន (${m.dropout_grade})` : "កំពុងរៀន");
             rowsHtml += `
               <tr>

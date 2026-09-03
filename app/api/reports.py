@@ -252,7 +252,7 @@ def export_excel_report(
         "PARENT": "ឪពុក/ម្តាយ", "RELATIVE": "សាច់ញាតិ", "OTHER": "ផ្សេងៗ"
     }
     edu_map = {"NONE": "មិនបានរៀន", "PRIMARY": "បឋមសិក្សា", "SECONDARY": "មធ្យមសិក្សា", "HIGHER": "ឧត្តមសិក្សា"}
-    dropout_map = {"ACTIVE": "កំពុងរៀន", "DROPOUT": "បោះបង់", "SUSPENDED": "បង្អង់"}
+    dropout_map = {"ACTIVE": "កំពុងរៀន", "DROPOUT": "បោះបង់", "SUSPENDED": "បង្អង់", "COMPLETED": "បានបញ្ចប់"}
 
     for fam in families:
         vill_name = f"{fam.village.name_kh} ({fam.village.commune.name_kh})" if fam.village else "N/A"
@@ -265,6 +265,8 @@ def export_excel_report(
             edu_kh = edu_map.get(member.education_status, member.education_status)
             if member.dropout_status == "DROPOUT" and member.dropout_grade:
                 study_status_kh = f"បោះបង់ ({member.dropout_grade})"
+            elif member.dropout_status == "COMPLETED" and member.dropout_grade:
+                study_status_kh = f"បានបញ្ចប់ ({member.dropout_grade})"
             elif member.dropout_status == "ACTIVE" and member.dropout_grade:
                 study_status_kh = f"កំពុងរៀន ({member.dropout_grade})"
             else:

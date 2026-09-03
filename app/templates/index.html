@@ -962,13 +962,14 @@
                 <select id="single-member-dropout" class="form-select" style="flex: 1; min-width: 140px;">
                   <option value="ACTIVE">កំពុងរៀន</option>
                   <option value="DROPOUT">បោះបង់ការសិក្សា</option>
+                  <option value="COMPLETED">បានបញ្ចប់</option>
                 </select>
                 <input type="text" id="single-member-grade" class="form-input"
-                  placeholder="ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)" inputmode="numeric" pattern="[0-9]*"
-                  title="សូមបញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9)"
-                  style="flex: 1; min-width: 160px; font-family: monospace; font-weight: 600;" />
+                  placeholder="ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)"
+                  title="កម្រិតថ្នាក់ ឬកម្រិតបញ្ចប់"
+                  style="flex: 1; min-width: 160px; font-weight: 600;" />
               </div>
-              <small class="text-dim" style="font-size: 0.72rem; margin-top: 0.25rem; display: block;">* បញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9) ឧ. 7, 8, 9...</small>
+              <small id="single-member-grade-help" class="text-dim" style="font-size: 0.72rem; margin-top: 0.25rem; display: block;">* បញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9) ឧ. 7, 8, 9...</small>
             </div>
 
             <div class="member-card-field-group">

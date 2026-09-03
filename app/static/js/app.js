@@ -576,13 +576,14 @@ function addMemberRow(initialData = {}) {
         <select class="form-select member-dropout" style="width: 100%;">
           <option value="ACTIVE" ${defaultDropout === 'ACTIVE' ? 'selected' : ''}>កំពុងរៀន</option>
           <option value="DROPOUT" ${defaultDropout === 'DROPOUT' ? 'selected' : ''}>បោះបង់ការសិក្សា</option>
+          <option value="COMPLETED" ${defaultDropout === 'COMPLETED' ? 'selected' : ''}>បានបញ្ចប់</option>
         </select>
         <input type="text" class="form-input member-dropout-grade" 
-          placeholder="${defaultDropout === 'DROPOUT' ? 'ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)' : 'ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)'}" 
+          placeholder="${defaultDropout === 'DROPOUT' ? 'ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)' : (defaultDropout === 'COMPLETED' ? 'កម្រិត/ថ្នាក់បញ្ចប់ (ឧ. 12, បរិញ្ញាបត្រ...)' : 'ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)')}" 
           value="${initialData.dropout_grade || ''}" 
-          inputmode="numeric" pattern="[0-9]*" title="សូមបញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9)"
-          style="margin-top: 0.35rem; width: 100%; font-size: 0.8rem; font-family: monospace; font-weight: 600;" />
-        <small class="text-dim" style="font-size: 0.72rem;">* បញ្ចូលតែលេខឡាតាំង (0-9) ឧ. 7, 8, 9...</small>
+          title="កម្រិតថ្នាក់ ឬកម្រិតបញ្ចប់"
+          style="margin-top: 0.35rem; width: 100%; font-size: 0.8rem; font-weight: 600;" />
+        <small class="text-dim member-grade-help" style="font-size: 0.72rem;">* ${defaultDropout === 'COMPLETED' ? 'អាចវាយបញ្ចូលជាអក្សរ ឬលេខឡាតាំងបាន' : 'បញ្ចូលតែលេខឡាតាំង (0-9) ឧ. 7, 8, 9...'}</small>
       </div>
 
       <div class="member-card-field-group">
@@ -601,11 +602,29 @@ function addMemberRow(initialData = {}) {
   container.appendChild(card);
   updateMemberIndices();
 
-  // Grade input constraint: Latin digits only
+  // Dynamic Grade placeholder & validation based on School Attendance
+  const dropSelect = card.querySelector(".member-dropout");
   const gradeInput = card.querySelector(".member-dropout-grade");
-  if (gradeInput) {
+  const gradeHelp = card.querySelector(".member-grade-help");
+
+  if (dropSelect && gradeInput) {
+    dropSelect.addEventListener("change", (e) => {
+      if (e.target.value === "DROPOUT") {
+        gradeInput.placeholder = "ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)";
+        if (gradeHelp) gradeHelp.textContent = "* បញ្ចូលតែលេខឡាតាំង (0-9) ឧ. 7, 8, 9...";
+      } else if (e.target.value === "COMPLETED") {
+        gradeInput.placeholder = "កម្រិត/ថ្នាក់បញ្ចប់ (ឧ. 12, បរិញ្ញាបត្រ...)";
+        if (gradeHelp) gradeHelp.textContent = "* អាចវាយបញ្ចូលជាអក្សរ ឬលេខឡាតាំងបាន";
+      } else {
+        gradeInput.placeholder = "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
+        if (gradeHelp) gradeHelp.textContent = "* បញ្ចូលតែលេខឡាតាំង (0-9) ឧ. 7, 8, 9...";
+      }
+    });
+
     gradeInput.addEventListener("input", (e) => {
-      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+      if (dropSelect.value !== "COMPLETED") {
+        e.target.value = e.target.value.replace(/[^0-9]/g, "");
+      }
     });
   }
 
@@ -630,16 +649,6 @@ function addMemberRow(initialData = {}) {
   dobInput.addEventListener("change", updateAge);
   dobInput.addEventListener("input", updateAge);
   if (initialData.dob) updateAge();
-
-  // Dynamic Grade placeholder based on School Attendance
-  const dropSelect = card.querySelector(".member-dropout");
-  dropSelect.addEventListener("change", (e) => {
-    if (e.target.value === "DROPOUT") {
-      gradeInput.placeholder = "ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)";
-    } else {
-      gradeInput.placeholder = "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
-    }
-  });
 
   // Remove row listener
   card.querySelector(".btn-remove-member").addEventListener("click", () => {
@@ -705,7 +714,12 @@ async function handleFamilyFormSubmit(e) {
     const edu = card.querySelector(".member-edu")?.value || "PRIMARY";
     const dropout = card.querySelector(".member-dropout")?.value || "ACTIVE";
     const rawGrade = card.querySelector(".member-dropout-grade")?.value || "";
-    const dropoutGrade = rawGrade.replace(/[^0-9]/g, "").trim();
+    let dropoutGrade = null;
+    if (dropout === "COMPLETED") {
+      dropoutGrade = rawGrade.trim() || null;
+    } else {
+      dropoutGrade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
+    }
     const rawBc = card.querySelector(".member-birthcert")?.value || "0";
     const birthCert = rawBc.replace(/[^0-9]/g, "") || "0";
     const occ = card.querySelector(".member-occupation")?.value || "";
@@ -718,7 +732,7 @@ async function handleFamilyFormSubmit(e) {
       relation: relation,
       education_status: edu,
       dropout_status: dropout,
-      dropout_grade: dropoutGrade ? dropoutGrade : null,
+      dropout_grade: dropoutGrade,
       birth_cert: birthCert,
       disability: "គ្មាន",
       occupation: occ,
@@ -1088,7 +1102,9 @@ async function openFamilyDetailModal(familyId) {
                 <td>
                   ${m.dropout_status === 'DROPOUT' ? 
                     `<span class="badge-tag dropout">បោះបង់ (${m.dropout_grade || 'មិនបញ្ជាក់'})</span>` : 
-                    (m.dropout_grade ? `<span class="badge-tag approved">កំពុងរៀន (${m.dropout_grade})</span>` : `<span class="badge-tag approved">កំពុងរៀន</span>`)}
+                    (m.dropout_status === 'COMPLETED' ?
+                      `<span class="badge-tag completed">បានបញ្ចប់${m.dropout_grade ? ` (${m.dropout_grade})` : ''}</span>` :
+                      (m.dropout_grade ? `<span class="badge-tag approved">កំពុងរៀន (${m.dropout_grade})</span>` : `<span class="badge-tag approved">កំពុងរៀន</span>`))}
                 </td>
                 <td class="text-center">
                   <span class="badge-tag ${m.birth_cert && String(m.birth_cert).trim() !== '0' && String(m.birth_cert).trim() !== 'false' ? 'cert-yes' : 'cert-no'}">
@@ -1241,6 +1257,8 @@ function openAddMemberModal(familyId, familyCode) {
   document.getElementById("single-member-dropout").value = "ACTIVE";
   document.getElementById("single-member-grade").value = "";
   document.getElementById("single-member-grade").placeholder = "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
+  const smGradeHelp = document.getElementById("single-member-grade-help");
+  if (smGradeHelp) smGradeHelp.textContent = "* បញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9) ឧ. 7, 8, 9...";
   document.getElementById("single-member-grade").style.display = "block";
   document.getElementById("single-member-occupation").value = "";
   document.getElementById("single-member-birthcert").value = "0";
@@ -1275,9 +1293,21 @@ function openEditMemberModal(familyId, familyCode, member) {
   document.getElementById("single-member-age-display").textContent = member.age !== undefined && member.age !== null ? member.age : calculateAgeFromDob(member.dob);
   document.getElementById("single-member-relation").value = member.relation || "CHILD";
   document.getElementById("single-member-edu").value = member.education_status || "PRIMARY";
-  document.getElementById("single-member-dropout").value = member.dropout_status || "ACTIVE";
+  const memberDropout = member.dropout_status || "ACTIVE";
+  document.getElementById("single-member-dropout").value = memberDropout;
   document.getElementById("single-member-grade").value = member.dropout_grade || "";
-  document.getElementById("single-member-grade").placeholder = member.dropout_status === "DROPOUT" ? "ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)" : "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
+  const smGradeInput = document.getElementById("single-member-grade");
+  const smGradeHelp = document.getElementById("single-member-grade-help");
+  if (memberDropout === "DROPOUT") {
+    smGradeInput.placeholder = "ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)";
+    if (smGradeHelp) smGradeHelp.textContent = "* បញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9) ឧ. 7, 8, 9...";
+  } else if (memberDropout === "COMPLETED") {
+    smGradeInput.placeholder = "កម្រិត/ថ្នាក់បញ្ចប់ (ឧ. 12, បរិញ្ញាបត្រ...)";
+    if (smGradeHelp) smGradeHelp.textContent = "* អាចវាយបញ្ចូលជាអក្សរ ឬលេខឡាតាំងបាន";
+  } else {
+    smGradeInput.placeholder = "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
+    if (smGradeHelp) smGradeHelp.textContent = "* បញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9) ឧ. 7, 8, 9...";
+  }
   document.getElementById("single-member-occupation").value = member.occupation || "";
   document.getElementById("single-member-birthcert").value = member.birth_cert || "0";
 
@@ -1310,7 +1340,12 @@ async function handleSingleMemberFormSubmit(e) {
   const edu = document.getElementById("single-member-edu")?.value || "PRIMARY";
   const dropout = document.getElementById("single-member-dropout")?.value || "ACTIVE";
   const rawGrade = document.getElementById("single-member-grade")?.value || "";
-  const grade = rawGrade.replace(/[^0-9]/g, "").trim();
+  let grade = null;
+  if (dropout === "COMPLETED") {
+    grade = rawGrade.trim() || null;
+  } else {
+    grade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
+  }
   const occupation = document.getElementById("single-member-occupation")?.value.trim() || "";
   const rawBc = document.getElementById("single-member-birthcert")?.value || "0";
   const birthCert = rawBc.replace(/[^0-9]/g, "") || "0";
@@ -1328,7 +1363,7 @@ async function handleSingleMemberFormSubmit(e) {
     relation: relation,
     education_status: edu,
     dropout_status: dropout,
-    dropout_grade: grade ? grade : null,
+    dropout_grade: grade,
     birth_cert: birthCert,
     disability: "គ្មាន",
     occupation: occupation,
@@ -2270,12 +2305,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const smDropout = document.getElementById("single-member-dropout");
   const smGrade = document.getElementById("single-member-grade");
+  const smGradeHelp = document.getElementById("single-member-grade-help");
   if (smDropout && smGrade) {
     smDropout.addEventListener("change", (e) => {
       if (e.target.value === "DROPOUT") {
         smGrade.placeholder = "ថ្នាក់បោះបង់ (លេខឡាតាំង ឧ. 7)";
+        if (smGradeHelp) smGradeHelp.textContent = "* បញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9) ឧ. 7, 8, 9...";
+      } else if (e.target.value === "COMPLETED") {
+        smGrade.placeholder = "កម្រិត/ថ្នាក់បញ្ចប់ (ឧ. 12, បរិញ្ញាបត្រ...)";
+        if (smGradeHelp) smGradeHelp.textContent = "* អាចវាយបញ្ចូលជាអក្សរ ឬលេខឡាតាំងបាន";
       } else {
         smGrade.placeholder = "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
+        if (smGradeHelp) smGradeHelp.textContent = "* បញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9) ឧ. 7, 8, 9...";
       }
     });
   }
@@ -2283,7 +2324,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const smGradeInput = document.getElementById("single-member-grade");
   if (smGradeInput) {
     smGradeInput.addEventListener("input", (e) => {
-      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+      if (smDropout && smDropout.value !== "COMPLETED") {
+        e.target.value = e.target.value.replace(/[^0-9]/g, "");
+      }
     });
   }
 
