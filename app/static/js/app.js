@@ -719,14 +719,14 @@ function addMemberRow(initialData = {}) {
       <div class="member-card-field-group">
         <label>កម្រិតវប្បធម៌</label>
         <select class="form-select member-edu" style="width: 100%;">
-          <option value="NONE" ${defaultEdu === 'NONE' ? 'selected' : ''}>មិនបានរៀន</option>
           <option value="PRIMARY" ${defaultEdu === 'PRIMARY' ? 'selected' : ''}>ចូលរៀនបឋម</option>
           <option value="SECONDARY" ${defaultEdu === 'SECONDARY' ? 'selected' : ''}>ចូលរៀនមធ្យម</option>
           <option value="HIGHER" ${defaultEdu === 'HIGHER' ? 'selected' : ''}>ឧត្តមសិក្សា</option>
+          <option value="NONE" ${defaultEdu === 'NONE' ? 'selected' : ''}>មិនបានរៀន</option>
         </select>
       </div>
 
-      <div class="member-card-field-group">
+      <div class="member-card-field-group member-dropout-group" style="${defaultEdu === 'NONE' ? 'display: none;' : ''}">
         <label>ស្ថានភាពសិក្សា និងកម្រិតថ្នាក់</label>
         <select class="form-select member-dropout" style="width: 100%;">
           <option value="ACTIVE" ${defaultDropout === 'ACTIVE' ? 'selected' : ''}>កំពុងរៀន</option>
@@ -757,11 +757,25 @@ function addMemberRow(initialData = {}) {
   container.appendChild(card);
   updateMemberIndices();
 
-  // Dynamic Grade placeholder & validation based on School Attendance
-  const dropSelect = card.querySelector(".member-dropout");
+  // Hide or Show School Attendance based on Education Level (NONE => hide)
+  const eduSelect = card.querySelector(".member-edu");
+  const dropoutGroup = card.querySelector(".member-dropout-group");
   const gradeInput = card.querySelector(".member-dropout-grade");
   const gradeHelp = card.querySelector(".member-grade-help");
+  const dropSelect = card.querySelector(".member-dropout");
 
+  if (eduSelect && dropoutGroup) {
+    eduSelect.addEventListener("change", (e) => {
+      if (e.target.value === "NONE") {
+        dropoutGroup.style.display = "none";
+        if (gradeInput) gradeInput.value = "";
+      } else {
+        dropoutGroup.style.display = "block";
+      }
+    });
+  }
+
+  // Dynamic Grade placeholder & validation based on School Attendance
   if (dropSelect && gradeInput) {
     dropSelect.addEventListener("change", (e) => {
       if (e.target.value === "DROPOUT") {
@@ -892,13 +906,17 @@ async function handleFamilyFormSubmit(e) {
     const gender = card.querySelector(".member-gender")?.value || "MALE";
     const relation = card.querySelector(".member-relation")?.value || "CHILD";
     const edu = card.querySelector(".member-edu")?.value || "PRIMARY";
-    const dropout = card.querySelector(".member-dropout")?.value || "ACTIVE";
-    const rawGrade = toLatinDigits(card.querySelector(".member-dropout-grade")?.value || "");
+    let dropout = "ACTIVE";
     let dropoutGrade = null;
-    if (dropout === "COMPLETED") {
-      dropoutGrade = rawGrade.trim() || null;
-    } else {
-      dropoutGrade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
+
+    if (edu !== "NONE") {
+      dropout = card.querySelector(".member-dropout")?.value || "ACTIVE";
+      const rawGrade = toLatinDigits(card.querySelector(".member-dropout-grade")?.value || "");
+      if (dropout === "COMPLETED") {
+        dropoutGrade = rawGrade.trim() || null;
+      } else {
+        dropoutGrade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
+      }
     }
     const rawBc = toLatinDigits(card.querySelector(".member-birthcert")?.value || "0");
     const birthCert = rawBc.replace(/[^0-9]/g, "") || "0";
@@ -1422,6 +1440,20 @@ async function handleEditFamilyFormSubmit(e) {
   }
 }
 
+function updateSingleMemberEduVisibility() {
+  const eduSelect = document.getElementById("single-member-edu");
+  const dropoutGroup = document.getElementById("single-member-dropout-group");
+  const gradeInput = document.getElementById("single-member-grade");
+  if (!eduSelect || !dropoutGroup) return;
+
+  if (eduSelect.value === "NONE") {
+    dropoutGroup.style.display = "none";
+    if (gradeInput) gradeInput.value = "";
+  } else {
+    dropoutGroup.style.display = "block";
+  }
+}
+
 // --- Single Member Management (Add / Edit / Delete) ---
 function openAddMemberModal(familyId, familyCode) {
   const modal = document.getElementById("single-member-modal");
@@ -1435,12 +1467,12 @@ function openAddMemberModal(familyId, familyCode) {
   document.getElementById("single-member-age-display").textContent = "0";
   document.getElementById("single-member-relation").value = "CHILD";
   document.getElementById("single-member-edu").value = "PRIMARY";
+  updateSingleMemberEduVisibility();
   document.getElementById("single-member-dropout").value = "ACTIVE";
   document.getElementById("single-member-grade").value = "";
   document.getElementById("single-member-grade").placeholder = "ថ្នាក់កំពុងរៀន (លេខឡាតាំង ឧ. 5)";
   const smGradeHelp = document.getElementById("single-member-grade-help");
   if (smGradeHelp) smGradeHelp.textContent = "* បញ្ចូលតែលេខឡាតាំងប៉ុណ្ណោះ (0-9) ឧ. 7, 8, 9...";
-  document.getElementById("single-member-grade").style.display = "block";
   document.getElementById("single-member-occupation").value = "";
   document.getElementById("single-member-birthcert").value = "0";
 
@@ -1474,6 +1506,7 @@ function openEditMemberModal(familyId, familyCode, member) {
   document.getElementById("single-member-age-display").textContent = member.age !== undefined && member.age !== null ? member.age : calculateAgeFromDob(member.dob);
   document.getElementById("single-member-relation").value = member.relation || "CHILD";
   document.getElementById("single-member-edu").value = member.education_status || "PRIMARY";
+  updateSingleMemberEduVisibility();
   const memberDropout = member.dropout_status || "ACTIVE";
   document.getElementById("single-member-dropout").value = memberDropout;
   document.getElementById("single-member-grade").value = member.dropout_grade ? toLatinDigits(member.dropout_grade) : "";
@@ -1519,13 +1552,17 @@ async function handleSingleMemberFormSubmit(e) {
   const dob = document.getElementById("single-member-dob")?.value;
   const relation = document.getElementById("single-member-relation")?.value || "CHILD";
   const edu = document.getElementById("single-member-edu")?.value || "PRIMARY";
-  const dropout = document.getElementById("single-member-dropout")?.value || "ACTIVE";
-  const rawGrade = toLatinDigits(document.getElementById("single-member-grade")?.value || "");
+  let dropout = "ACTIVE";
   let grade = null;
-  if (dropout === "COMPLETED") {
-    grade = rawGrade.trim() || null;
-  } else {
-    grade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
+
+  if (edu !== "NONE") {
+    dropout = document.getElementById("single-member-dropout")?.value || "ACTIVE";
+    const rawGrade = toLatinDigits(document.getElementById("single-member-grade")?.value || "");
+    if (dropout === "COMPLETED") {
+      grade = rawGrade.trim() || null;
+    } else {
+      grade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
+    }
   }
   const occupation = document.getElementById("single-member-occupation")?.value.trim() || "";
   const rawBc = toLatinDigits(document.getElementById("single-member-birthcert")?.value || "0");
@@ -2482,6 +2519,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
     smDob.addEventListener("input", updateSmAge);
     smDob.addEventListener("change", updateSmAge);
+  }
+
+  const smEdu = document.getElementById("single-member-edu");
+  if (smEdu) {
+    smEdu.addEventListener("change", updateSingleMemberEduVisibility);
   }
 
   const smDropout = document.getElementById("single-member-dropout");
