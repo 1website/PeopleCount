@@ -178,6 +178,10 @@ def test_reporting_and_excel():
     assert "education" in stats
     assert "infants_0" in stats["education"]
     assert stats["education"]["infants_0"] >= 1
+    assert "dropout_groups" in stats["education"]
+    assert "grades_0_6" in stats["education"]["dropout_groups"]
+    assert "grades_7_9" in stats["education"]["dropout_groups"]
+    assert "grades_10_12" in stats["education"]["dropout_groups"]
     print(f"[OK] Reporting stats test passed (Pop: {stats['demographics']['total_population']}, Infants (Age 0): {stats['education']['infants_0']}, Dropouts: {stats['education']['dropouts_count']})")
 
     # Test Excel Export (All, and with filters)

@@ -1,4 +1,5 @@
 import io
+import re
 import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -109,12 +110,36 @@ def get_dashboard_stats(
     edu_secondary = sum(1 for m in members if m.education_status == "SECONDARY")
     edu_higher = sum(1 for m in members if m.education_status == "HIGHER")
 
-    # Dropouts breakdown by grade (normalized to Latin digits)
+    # Dropouts breakdown by grade and groups (0-6, 7-9, 10-12)
     dropout_breakdown = {}
+    dropout_groups = {
+        "grades_0_6": 0,
+        "grades_7_9": 0,
+        "grades_10_12": 0,
+        "other": 0
+    }
     for m in members:
-        if m.dropout_status == "DROPOUT" and m.dropout_grade:
-            norm_grade = khmer_to_latin_digits(m.dropout_grade).strip()
-            dropout_breakdown[norm_grade] = dropout_breakdown.get(norm_grade, 0) + 1
+        if m.dropout_status == "DROPOUT":
+            if m.dropout_grade:
+                norm_grade = khmer_to_latin_digits(m.dropout_grade).strip()
+                dropout_breakdown[norm_grade] = dropout_breakdown.get(norm_grade, 0) + 1
+
+                # Extract numeric grade
+                match = re.search(r'\d+', norm_grade)
+                if match:
+                    grade_num = int(match.group())
+                    if 0 <= grade_num <= 6:
+                        dropout_groups["grades_0_6"] += 1
+                    elif 7 <= grade_num <= 9:
+                        dropout_groups["grades_7_9"] += 1
+                    elif 10 <= grade_num <= 12:
+                        dropout_groups["grades_10_12"] += 1
+                    else:
+                        dropout_groups["other"] += 1
+                else:
+                    dropout_groups["other"] += 1
+            else:
+                dropout_groups["other"] += 1
 
     return {
         "families": {
@@ -154,7 +179,8 @@ def get_dashboard_stats(
                 "secondary": edu_secondary,
                 "higher": edu_higher
             },
-            "dropout_breakdown": dropout_breakdown
+            "dropout_breakdown": dropout_breakdown,
+            "dropout_groups": dropout_groups
         }
     }
 

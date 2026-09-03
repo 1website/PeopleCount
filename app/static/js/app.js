@@ -557,26 +557,96 @@ function renderDashboard(data) {
     `;
   }
 
-  // Dropout Grades Breakdown Table
+  // Dropout Grades Breakdown Table (Grouped: 0-6, 7-9, 10-12)
   const dropTbody = document.getElementById("table-dropouts-breakdown");
   if (dropTbody) {
-    const rawGrades = Object.entries(edu.dropout_breakdown || {});
-    // Consolidate grades after converting Khmer digits to Latin digits (e.g. ០ -> 0, ១ -> 1, ...)
-    const consolidated = {};
-    rawGrades.forEach(([gr, cnt]) => {
-      const latinGr = toLatinDigits(gr).trim();
-      consolidated[latinGr] = (consolidated[latinGr] || 0) + cnt;
-    });
-    const grades = Object.entries(consolidated);
-    if (grades.length === 0) {
+    const dGroups = edu.dropout_groups || {};
+    let g0_6 = dGroups.grades_0_6 !== undefined ? dGroups.grades_0_6 : 0;
+    let g7_9 = dGroups.grades_7_9 !== undefined ? dGroups.grades_7_9 : 0;
+    let g10_12 = dGroups.grades_10_12 !== undefined ? dGroups.grades_10_12 : 0;
+    let otherCnt = dGroups.other !== undefined ? dGroups.other : 0;
+
+    // Fallback/Calculation from raw breakdown if dropout_groups is missing
+    if (!edu.dropout_groups && edu.dropout_breakdown) {
+      g0_6 = 0; g7_9 = 0; g10_12 = 0; otherCnt = 0;
+      Object.entries(edu.dropout_breakdown).forEach(([gr, cnt]) => {
+        const latinGr = toLatinDigits(gr).trim();
+        const numMatch = latinGr.match(/\d+/);
+        if (numMatch) {
+          const num = parseInt(numMatch[0]);
+          if (num >= 0 && num <= 6) g0_6 += cnt;
+          else if (num >= 7 && num <= 9) g7_9 += cnt;
+          else if (num >= 10 && num <= 12) g10_12 += cnt;
+          else otherCnt += cnt;
+        } else {
+          otherCnt += cnt;
+        }
+      });
+    }
+
+    const totalDropouts = g0_6 + g7_9 + g10_12 + otherCnt;
+
+    if (totalDropouts === 0 && (edu.dropouts_count || 0) === 0) {
       dropTbody.innerHTML = `<tr><td colspan="2" class="text-center text-dim" style="padding: 1.5rem; text-align: center;">គ្មានទិន្នន័យបោះបង់ការសិក្សា</td></tr>`;
     } else {
-      dropTbody.innerHTML = grades.map(([gr, cnt]) => `
-        <tr>
-          <td><span class="badge-tag dropout">${toLatinDigits(gr)}</span></td>
-          <td class="text-right"><strong>${cnt}</strong> នាក់</td>
+      let rows = `
+        <tr style="background: rgba(239, 68, 68, 0.04);">
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+              <span class="badge-tag dropout" style="font-weight: 700; min-width: 90px; text-align: center; font-size: 0.8rem;">ថ្នាក់ 0 ដល់ 6</span>
+              <span style="font-size: 0.88rem; color: #e2e8f0; font-weight: 500;">(មត្តេយ្យ & បឋមសិក្សា)</span>
+            </div>
+          </td>
+          <td class="text-right"><strong style="font-size: 1.05rem; color: #fb7185;">${g0_6}</strong> នាក់</td>
         </tr>
-      `).join("");
+        <tr style="background: rgba(239, 68, 68, 0.04);">
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+              <span class="badge-tag dropout" style="font-weight: 700; min-width: 90px; text-align: center; font-size: 0.8rem;">ថ្នាក់ 7 ដល់ 9</span>
+              <span style="font-size: 0.88rem; color: #e2e8f0; font-weight: 500;">(កម្រិតអនុវិទ្យាល័យ)</span>
+            </div>
+          </td>
+          <td class="text-right"><strong style="font-size: 1.05rem; color: #fb7185;">${g7_9}</strong> នាក់</td>
+        </tr>
+        <tr style="background: rgba(239, 68, 68, 0.04);">
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+              <span class="badge-tag dropout" style="font-weight: 700; min-width: 90px; text-align: center; font-size: 0.8rem;">ថ្នាក់ 10 ដល់ 12</span>
+              <span style="font-size: 0.88rem; color: #e2e8f0; font-weight: 500;">(កម្រិតវិទ្យាល័យ)</span>
+            </div>
+          </td>
+          <td class="text-right"><strong style="font-size: 1.05rem; color: #fb7185;">${g10_12}</strong> នាក់</td>
+        </tr>
+      `;
+
+      if (otherCnt > 0) {
+        rows += `
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                <span class="badge-tag general" style="font-weight: 700; min-width: 90px; text-align: center; font-size: 0.8rem;">ផ្សេងៗ</span>
+                <span style="font-size: 0.88rem; color: #94a3b8;">(មិនបញ្ជាក់កម្រិតថ្នាក់)</span>
+              </div>
+            </td>
+            <td class="text-right"><strong style="font-size: 1.05rem; color: #cbd5e1;">${otherCnt}</strong> នាក់</td>
+          </tr>
+        `;
+      }
+
+      rows += `
+        <tr style="border-top: 2px solid var(--border-color); background: rgba(239, 68, 68, 0.12);">
+          <td>
+            <strong style="color: #f87171; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem;">
+              <i class="fa-solid fa-user-xmark"></i> សរុបបោះបង់ការសិក្សាទាំងអស់
+            </strong>
+          </td>
+          <td class="text-right">
+            <strong style="color: #f87171; font-size: 1.15rem;">${totalDropouts || edu.dropouts_count || 0}</strong> នាក់
+          </td>
+        </tr>
+      `;
+
+      dropTbody.innerHTML = rows;
     }
   }
 }
