@@ -137,7 +137,7 @@ class MemberBase(BaseModel):
     dob: date
     relation: str = "CHILD"  # HEAD, SPOUSE, CHILD, PARENT, RELATIVE, OTHER
     education_status: str = "PRIMARY"  # NONE, PRIMARY, SECONDARY, HIGHER
-    dropout_status: str = "ACTIVE"  # ACTIVE, DROPOUT, SUSPENDED
+    dropout_status: str = "ACTIVE"  # ACTIVE, DROPOUT, SUSPENDED, COMPLETED
     dropout_grade: Optional[str] = None
     birth_cert: str = "0"
     disability: Optional[str] = None
@@ -152,8 +152,30 @@ class MemberBase(BaseModel):
         if v is True:
             return "1"
         s = str(v).strip()
+        khmer_to_latin = {
+            '០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4',
+            '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9'
+        }
+        for kh, lat in khmer_to_latin.items():
+            s = s.replace(kh, lat)
         digits = re.sub(r"[^0-9]", "", s)
         return digits if digits else "0"
+
+    @field_validator("dropout_grade", mode="before")
+    @classmethod
+    def validate_dropout_grade(cls, v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        if not s:
+            return None
+        khmer_to_latin = {
+            '០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4',
+            '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9'
+        }
+        for kh, lat in khmer_to_latin.items():
+            s = s.replace(kh, lat)
+        return s.strip() or None
 
 
 class MemberCreate(MemberBase):

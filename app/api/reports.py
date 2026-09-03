@@ -163,6 +163,8 @@ def get_dashboard_stats(
 def export_excel_report(
     village_id: Optional[int] = None,
     commune_id: Optional[int] = None,
+    district_id: Optional[int] = None,
+    province_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -214,6 +216,18 @@ def export_excel_report(
         v = db.query(Village).filter(Village.id == village_id).first()
         if v:
             loc_title += f" (ភូមិ {v.name_kh} - កូដ {v.code})"
+    elif commune_id:
+        c = db.query(Commune).filter(Commune.id == commune_id).first()
+        if c:
+            loc_title += f" (ឃុំ/សង្កាត់ {c.name_kh} - កូដ {c.code})"
+    elif district_id:
+        d = db.query(District).filter(District.id == district_id).first()
+        if d:
+            loc_title += f" (ស្រុក/ខណ្ឌ {d.name_kh} - កូដ {d.code})"
+    elif province_id:
+        p = db.query(Province).filter(Province.id == province_id).first()
+        if p:
+            loc_title += f" ({p.name_kh} - កូដ {p.code})"
     ws["A4"] = loc_title
     ws["A4"].font = Font(name="Khmer OS Muol Light", size=12, bold=True, color="0F172A")
     ws["A4"].alignment = align_center
@@ -253,6 +267,15 @@ def export_excel_report(
         fam_query = fam_query.filter(Family.village_id == village_id)
     elif commune_id:
         v_ids = [v.id for v in db.query(Village.id).filter(Village.commune_id == commune_id).all()]
+        fam_query = fam_query.filter(Family.village_id.in_(v_ids))
+    elif district_id:
+        c_ids = [c.id for c in db.query(Commune.id).filter(Commune.district_id == district_id).all()]
+        v_ids = [v.id for v in db.query(Village.id).filter(Village.commune_id.in_(c_ids)).all()]
+        fam_query = fam_query.filter(Family.village_id.in_(v_ids))
+    elif province_id:
+        d_ids = [d.id for d in db.query(District.id).filter(District.province_id == province_id).all()]
+        c_ids = [c.id for c in db.query(Commune.id).filter(Commune.district_id.in_(d_ids)).all()]
+        v_ids = [v.id for v in db.query(Village.id).filter(Village.commune_id.in_(c_ids)).all()]
         fam_query = fam_query.filter(Family.village_id.in_(v_ids))
 
     families = fam_query.order_by(Family.id.asc()).all()

@@ -113,11 +113,33 @@
         const eduMap = { "NONE": "មិនបានរៀន", "PRIMARY": "បឋម", "SECONDARY": "មធ្យម", "HIGHER": "ឧត្តម" };
         const khmerToLatin = { '០': '0', '១': '1', '២': '2', '៣': '3', '៤': '4', '៥': '5', '៦': '6', '៧': '7', '៨': '8', '៩': '9' };
         const toLatinDigits = (str) => str ? String(str).replace(/[០-៩]/g, d => khmerToLatin[d] || d) : '';
+        const formatDob = (dobStr) => {
+          if (!dobStr) return "-";
+          const parts = String(dobStr).split("-");
+          if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+          return dobStr;
+        };
 
-        for (const fam of families) {
-          const detailRes = await fetch(`/api/families/${fam.id}`);
-          if (!detailRes.ok) continue;
-          const detail = await detailRes.json();
+        if (families.length > 0) {
+          const f0 = families[0];
+          const prov = f0.province_name_kh || "សៀមរាប";
+          const dist = f0.district_name_kh || "អង្គរជុំ";
+          const comm = f0.commune_name_kh || "គោកដូង";
+          const vill = f0.village_name_kh || "ប្រាសាទត្រាវ";
+          const locEl = document.getElementById("print-loc-info");
+          if (locEl) {
+            locEl.textContent = `រាជធានី/ខេត្ត៖ ${prov} | ស្រុក/ខណ្ឌ៖ ${dist} | ឃុំ/សង្កាត់៖ ${comm} | ភូមិ៖ ${vill}`;
+          }
+        }
+
+        // Fetch details concurrently in batches
+        const detailPromises = families.map(fam => fetch(`/api/families/${fam.id}`).then(r => r.ok ? r.json() : null).catch(() => null));
+        const details = await Promise.all(detailPromises);
+
+        for (let i = 0; i < families.length; i++) {
+          const fam = families[i];
+          const detail = details[i];
+          if (!detail || !detail.members) continue;
 
           for (const m of detail.members) {
             const cleanGrade = toLatinDigits(m.dropout_grade);
@@ -132,7 +154,7 @@
                 <td class="text-left"><strong>${m.full_name}</strong></td>
                 <td>${m.gender === "MALE" ? "ប្រុស" : "ស្រី"}</td>
                 <td>${m.nationality}</td>
-                <td>${m.dob}</td>
+                <td>${formatDob(m.dob)}</td>
                 <td><strong>${m.age}</strong></td>
                 <td>${relMap[m.relation] || m.relation}</td>
                 <td>${eduMap[m.education_status] || m.education_status}</td>

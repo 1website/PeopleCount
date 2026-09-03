@@ -166,6 +166,10 @@ async def restore_database_backup(
 
     data = payload["data"]
     is_sqlite = db.bind.dialect.name == "sqlite"
+    admin_user_id = current_user.id
+    admin_username = current_user.username
+    admin_fullname = current_user.full_name
+    admin_role = current_user.role
 
     try:
         # 1. Clear existing data in reverse dependency order to prevent foreign key errors
@@ -331,11 +335,12 @@ async def restore_database_backup(
 
         # Add audit log for restore action
         try:
+            restored_user = db.query(User).filter(User.username == admin_username).first()
             audit = UserAuditLog(
-                user_id=current_user.id,
-                username=current_user.username,
-                full_name=current_user.full_name,
-                role=current_user.role,
+                user_id=restored_user.id if restored_user else None,
+                username=admin_username,
+                full_name=admin_fullname,
+                role=admin_role,
                 action="DATABASE_RESTORE_COMPLETED",
                 ip_address="Vercel/Cloud",
                 user_agent="Admin Console"

@@ -144,6 +144,17 @@
         </div>
 
         <div class="topbar-right" style="display: flex; align-items: center; gap: 0.65rem;">
+          <span id="network-status-badge" class="status-badge online">
+            <span class="dot"></span> Online (ភ្ជាប់អ៊ីនធឺណិត)
+          </span>
+
+          <button type="button" id="btn-manual-sync" class="btn btn-sm btn-outline"
+            style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem;" disabled
+            title="ធ្វើសមកាលកម្មទិន្នន័យក្រៅបណ្តាញ (Offline Data Sync)">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span class="hide-mobile">ធ្វើសមកាលកម្ម</span> (<span id="sync-count-badge">0</span>)
+          </button>
+
           <span class="system-time-badge" id="system-time-display">
             <i class="fa-solid fa-calendar-check" style="color: #60a5fa;"></i>
             <span id="current-date-text">កាលបរិច្ឆេទ...</span>
@@ -175,7 +186,7 @@
                   style="font-size: 1rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                   <span>ដែនសមត្ថកិច្ចគោលដៅ៖ <strong>ភូមិប្រាសាទត្រាវ នៃឃុំគោកដូង</strong></span>
                   <span class="badge-tag approved" style="font-size: 0.72rem; font-family: monospace;">កូដភូមិ:
-                    17010312</span>
+                    17010307</span>
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem;">
                   <i class="fa-solid fa-map" style="color: #60a5fa; margin-right: 4px;"></i> ស្រុកអង្គរជុំ ខេត្តសៀមរាប •

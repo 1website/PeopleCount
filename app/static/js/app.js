@@ -452,7 +452,19 @@ window.refreshCurrentView = function() {
 // --- Dashboard View ---
 async function loadDashboardStats() {
   try {
-    const res = await apiRequest("/api/reports/dashboard-stats");
+    const params = new URLSearchParams();
+    const pVal = document.getElementById("filter-province")?.value;
+    const dVal = document.getElementById("filter-district")?.value;
+    const cVal = document.getElementById("filter-commune")?.value;
+    const vVal = document.getElementById("filter-village")?.value;
+
+    if (vVal) params.append("village_id", vVal);
+    else if (cVal) params.append("commune_id", cVal);
+    else if (dVal) params.append("district_id", dVal);
+    else if (pVal) params.append("province_id", pVal);
+
+    const qs = params.toString() ? `?${params.toString()}` : "";
+    const res = await apiRequest(`/api/reports/dashboard-stats${qs}`);
     if (!res.ok) return;
     const data = await res.json();
     renderDashboard(data);

@@ -129,16 +129,40 @@ def test_family_and_member_registration():
     added_m = add_m_res.json()
     assert added_m["full_name"] == "Sok Vibol Extra"
     assert added_m["birth_cert"] == "54321"
-    assert added_m["dropout_grade"] == "ថ្នាក់ទី ២"
+    assert added_m["dropout_grade"] == "ថ្នាក់ទី 2"
     assert added_m["age"] >= 6
 
-    # Verify deleting the member from the family
+    # Verify adding a member with COMPLETED study status and Khmer digits in birth_cert
+    completed_m_payload = {
+        "full_name": "Sok Somaly Graduate",
+        "gender": "FEMALE",
+        "nationality": "Khmer",
+        "dob": "2000-05-20",
+        "relation": "CHILD",
+        "education_status": "HIGHER",
+        "dropout_status": "COMPLETED",
+        "dropout_grade": "បរិញ្ញាបត្រ",
+        "birth_cert": "៩៨៧៦៥",
+        "disability": "None",
+        "occupation": "Engineer",
+        "current_address": "Siem Reap"
+    }
+    comp_res = client.post(f"/api/families/{created_fam['id']}/members", json=completed_m_payload, headers=headers)
+    assert comp_res.status_code == 200
+    comp_m = comp_res.json()
+    assert comp_m["dropout_status"] == "COMPLETED"
+    assert comp_m["dropout_grade"] == "បរិញ្ញាបត្រ"
+    assert comp_m["birth_cert"] == "98765"  # Khmer digits '៩៨៧៦៥' successfully normalized to '98765'
+
+    # Verify deleting the added members from the family
+    client.delete(f"/api/families/members/{comp_m['id']}", headers=headers)
     del_m_res = client.delete(f"/api/families/members/{added_m['id']}", headers=headers)
     assert del_m_res.status_code == 200
 
     # Verify member is gone
     fam_after = client.get(f"/api/families/{created_fam['id']}").json()
     assert not any(m["id"] == added_m["id"] for m in fam_after["members"])
+    assert not any(m["id"] == comp_m["id"] for m in fam_after["members"])
 
     print(f"[OK] Family registration, dynamic member addition & deletion passed")
 
@@ -156,12 +180,21 @@ def test_reporting_and_excel():
     assert stats["education"]["infants_0"] >= 1
     print(f"[OK] Reporting stats test passed (Pop: {stats['demographics']['total_population']}, Infants (Age 0): {stats['education']['infants_0']}, Dropouts: {stats['education']['dropouts_count']})")
 
-    # Test Excel Export
+    # Test Excel Export (All, and with filters)
     excel_res = client.get("/api/reports/export/excel")
     assert excel_res.status_code == 200
     assert excel_res.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     assert len(excel_res.content) > 1000  # valid binary excel
-    print("[OK] Excel Export test passed")
+
+    # Test Excel Export with province and district filters
+    prov_res = client.get("/api/geo/provinces").json()
+    if prov_res:
+        p_id = prov_res[0]["id"]
+        excel_prov = client.get(f"/api/reports/export/excel?province_id={p_id}")
+        assert excel_prov.status_code == 200
+        assert len(excel_prov.content) > 1000
+
+    print("[OK] Excel Export test passed (with hierarchy filtering)")
 
 
 def test_offline_sync():
@@ -347,6 +380,9 @@ def test_backup_and_restore():
     bad_res = client.post("/api/backup/restore", headers=admin_headers, files=bad_files)
     assert bad_res.status_code == 400
 
+    print("[OK] Database backup and restore test passed")
+
+
 def test_collector_permissions_and_family_management():
     # 1. Login as collector
     res = client.post("/api/auth/login", json={"username": "collector", "password": "collector123"})
@@ -446,6 +482,7 @@ def test_collector_permissions_and_family_management():
     assert edit_m_res.status_code == 200
     assert edit_m_res.json()["full_name"] == "Collector Edited Member Name"
     assert edit_m_res.json()["dropout_status"] == "DROPOUT"
+    assert edit_m_res.json()["dropout_grade"] == "ថ្នាក់ទី 3"
     assert edit_m_res.json()["birth_cert"] == "999"
 
     # 7. Collector CANNOT delete family (Forbidden)
