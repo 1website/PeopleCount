@@ -75,6 +75,44 @@ def diagnostic():
         info["traceback"] = traceback.format_exc()
     return info
 
+@app.get("/api/migrate")
+def run_manual_migration():
+    from sqlalchemy import text
+    from app.database import engine, SessionLocal
+    results = []
+    is_pg = engine.dialect.name == "postgresql"
+    migrations = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT" if is_pg else "ALTER TABLE users ADD COLUMN profile_picture TEXT",
+        "ALTER TABLE families ADD COLUMN IF NOT EXISTS offline_client_id VARCHAR(100)" if is_pg else "ALTER TABLE families ADD COLUMN offline_client_id VARCHAR(100)",
+        "ALTER TABLE members ADD COLUMN IF NOT EXISTS is_studying BOOLEAN DEFAULT TRUE" if is_pg else "ALTER TABLE members ADD COLUMN is_studying BOOLEAN DEFAULT 1",
+        "ALTER TABLE members ADD COLUMN IF NOT EXISTS dropout_grade VARCHAR(20)" if is_pg else "ALTER TABLE members ADD COLUMN dropout_grade VARCHAR(20)",
+        "ALTER TABLE families ADD COLUMN IF NOT EXISTS latitude FLOAT" if is_pg else "ALTER TABLE families ADD COLUMN latitude FLOAT",
+        "ALTER TABLE families ADD COLUMN IF NOT EXISTS longitude FLOAT" if is_pg else "ALTER TABLE families ADD COLUMN longitude FLOAT",
+        "ALTER TABLE villages ADD COLUMN IF NOT EXISTS latitude FLOAT" if is_pg else "ALTER TABLE villages ADD COLUMN latitude FLOAT",
+        "ALTER TABLE villages ADD COLUMN IF NOT EXISTS longitude FLOAT" if is_pg else "ALTER TABLE villages ADD COLUMN longitude FLOAT",
+        "UPDATE members SET dropout_status = 'NONE', dropout_grade = NULL WHERE education_status = 'NONE' AND (dropout_status != 'NONE' OR dropout_grade IS NOT NULL)",
+        "UPDATE villages SET latitude = 13.5852, longitude = 103.7125 WHERE code = '17010307' AND latitude IS NULL",
+        "UPDATE users SET assigned_geo_code = '17010307' WHERE username = 'collector' AND (assigned_geo_code IS NULL OR assigned_geo_code = '17010312')"
+    ]
+    for sql in migrations:
+        try:
+            with engine.connect() as conn:
+                conn.execute(text(sql))
+                conn.commit()
+            results.append({"sql": sql.strip()[:45], "status": "ok"})
+        except Exception as e:
+            results.append({"sql": sql.strip()[:45], "status": "error", "error": str(e)})
+
+    # Also run init_db_and_seed
+    from app.seed import init_db_and_seed
+    try:
+        init_db_and_seed()
+        results.append({"seed": "ok"})
+    except Exception as e:
+        results.append({"seed": "error", "error": str(e)})
+
+    return {"is_pg": is_pg, "results": results}
+
 # Mount API routers
 app.include_router(auth.router)
 app.include_router(geo.router)
