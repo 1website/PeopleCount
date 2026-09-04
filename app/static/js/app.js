@@ -459,6 +459,12 @@ window.refreshCurrentView = function() {
 
 // --- Dashboard View ---
 async function loadDashboardStats() {
+  // Immediately render cached stats if available to prevent empty/0 flashing
+  const cached = localStorage.getItem("cached_dashboard_stats");
+  if (cached) {
+    try { renderDashboard(JSON.parse(cached)); } catch (e) {}
+  }
+
   try {
     const params = new URLSearchParams();
     const pVal = document.getElementById("filter-province")?.value;
@@ -473,11 +479,20 @@ async function loadDashboardStats() {
 
     const qs = params.toString() ? `?${params.toString()}` : "";
     const res = await apiRequest(`/api/reports/dashboard-stats${qs}`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      if (cached) {
+        try { renderDashboard(JSON.parse(cached)); } catch (e) {}
+      }
+      return;
+    }
     const data = await res.json();
+    localStorage.setItem("cached_dashboard_stats", JSON.stringify(data));
     renderDashboard(data);
   } catch (err) {
     console.warn("Could not load stats (offline):", err);
+    if (cached) {
+      try { renderDashboard(JSON.parse(cached)); } catch (e) {}
+    }
   }
 }
 

@@ -128,7 +128,7 @@ def init_db_and_seed(force: bool = False):
         db.query(District).delete()
         db.query(Province).delete()
         db.commit()
-    elif db.query(Province).first():
+    elif db.query(Province).first() and db.query(Family).count() > 0:
         print("Database already contains data, skipping seed.")
         db.close()
         return
