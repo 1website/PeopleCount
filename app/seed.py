@@ -128,100 +128,110 @@ def init_db_and_seed(force: bool = False):
         db.query(District).delete()
         db.query(Province).delete()
         db.commit()
-    elif db.query(Province).first() and db.query(Family).count() > 0:
-        print("Database already contains data, skipping seed.")
-        db.close()
-        return
-
-    print("Seeding Cambodian geographic hierarchy (Prasat Trav Village, Kouk Doung, Angkor Chum, Siem Reap)...")
-
-    # 1. Geographic Hierarchy: Prasat Trav Village in Kouk Doung Commune, Angkor Chum District, Siem Reap Province
-    geo_data = [
-        {
-            "code": "17",
-            "name_kh": "ខេត្តសៀមរាប",
-            "name_en": "Siem Reap",
-            "districts": [
-                {
-                    "code": "1701",
-                    "name_kh": "ស្រុកអង្គរជុំ",
-                    "name_en": "Angkor Chum",
-                    "communes": [
-                        {
-                            "code": "170103",
-                            "name_kh": "ឃុំគោកដូង",
-                            "name_en": "Kouk Doung",
-                            "villages": [
-                                {
-                                    "code": "17010307",
-                                    "name_kh": "ភូមិប្រាសាទត្រាវ",
-                                    "name_en": "Prasat Trav"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
 
     village_map = {}
-    for p_item in geo_data:
-        prov = Province(code=p_item["code"], name_kh=p_item["name_kh"], name_en=p_item["name_en"])
-        db.add(prov)
-        db.flush()
 
-        for d_item in p_item["districts"]:
-            dist = District(province_id=prov.id, code=d_item["code"], name_kh=d_item["name_kh"], name_en=d_item["name_en"])
-            db.add(dist)
+    # 1. Geographic Hierarchy
+    if not db.query(Province).first():
+        print("Seeding Cambodian geographic hierarchy (Prasat Trav Village, Kouk Doung, Angkor Chum, Siem Reap)...")
+        geo_data = [
+            {
+                "code": "17",
+                "name_kh": "ខេត្តសៀមរាប",
+                "name_en": "Siem Reap",
+                "districts": [
+                    {
+                        "code": "1701",
+                        "name_kh": "ស្រុកអង្គរជុំ",
+                        "name_en": "Angkor Chum",
+                        "communes": [
+                            {
+                                "code": "170103",
+                                "name_kh": "ឃុំគោកដូង",
+                                "name_en": "Kouk Doung",
+                                "villages": [
+                                    {
+                                        "code": "17010307",
+                                        "name_kh": "ភូមិប្រាសាទត្រាវ",
+                                        "name_en": "Prasat Trav"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+
+        for p_item in geo_data:
+            prov = Province(code=p_item["code"], name_kh=p_item["name_kh"], name_en=p_item["name_en"])
+            db.add(prov)
             db.flush()
 
-            for c_item in d_item["communes"]:
-                comm = Commune(district_id=dist.id, code=c_item["code"], name_kh=c_item["name_kh"], name_en=c_item["name_en"])
-                db.add(comm)
+            for d_item in p_item["districts"]:
+                dist = District(province_id=prov.id, code=d_item["code"], name_kh=d_item["name_kh"], name_en=d_item["name_en"])
+                db.add(dist)
                 db.flush()
 
-                for v_item in c_item["villages"]:
-                    vill_lat = 13.5852 if v_item["code"] == "17010307" else None
-                    vill_lng = 103.7125 if v_item["code"] == "17010307" else None
-                    vill = Village(
-                        commune_id=comm.id,
-                        code=v_item["code"],
-                        name_kh=v_item["name_kh"],
-                        name_en=v_item["name_en"],
-                        latitude=vill_lat,
-                        longitude=vill_lng
-                    )
-                    db.add(vill)
+                for c_item in d_item["communes"]:
+                    comm = Commune(district_id=dist.id, code=c_item["code"], name_kh=c_item["name_kh"], name_en=c_item["name_en"])
+                    db.add(comm)
                     db.flush()
-                    village_map[v_item["code"]] = vill.id
+
+                    for v_item in c_item["villages"]:
+                        vill_lat = 13.5852 if v_item["code"] == "17010307" else None
+                        vill_lng = 103.7125 if v_item["code"] == "17010307" else None
+                        vill = Village(
+                            commune_id=comm.id,
+                            code=v_item["code"],
+                            name_kh=v_item["name_kh"],
+                            name_en=v_item["name_en"],
+                            latitude=vill_lat,
+                            longitude=vill_lng
+                        )
+                        db.add(vill)
+                        db.flush()
+                        village_map[v_item["code"]] = vill.id
+        db.commit()
+    else:
+        for v in db.query(Village).all():
+            village_map[v.code] = v.id
 
     # 2. Users Seed Data (Admin, Reviewer, Collector)
-    users = [
-        User(
-            username="admin",
-            hashed_password=hash_password("admin123"),
-            full_name="ឯកឧត្តម ប្រធានគ្រប់គ្រងប្រព័ន្ធ (Admin)",
-            role="ADMIN",
-            assigned_level="ALL",
-            assigned_geo_code=None
-        ),
-        User(
-            username="collector",
-            hashed_password=hash_password("collector123"),
-            full_name="កញ្ញា សុខ ស្រីម៉ៅ (អ្នកស្រង់ស្ថិតិ ភូមិប្រាសាទត្រាវ)",
-            role="COLLECTOR",
-            assigned_level="VILLAGE",
-            assigned_geo_code="17010307"
-        )
-    ]
-
-    for u in users:
-        db.add(u)
-    db.commit()
+    if not db.query(User).filter(User.username == "admin").first():
+        users = [
+            User(
+                username="admin",
+                hashed_password=hash_password("admin123"),
+                full_name="ឯកឧត្តម ប្រធានគ្រប់គ្រងប្រព័ន្ធ (Admin)",
+                role="ADMIN",
+                assigned_level="ALL",
+                assigned_geo_code=None
+            ),
+            User(
+                username="collector",
+                hashed_password=hash_password("collector123"),
+                full_name="កញ្ញា សុខ ស្រីម៉ៅ (អ្នកស្រង់ស្ថិតិ ភូមិប្រាសាទត្រាវ)",
+                role="COLLECTOR",
+                assigned_level="VILLAGE",
+                assigned_geo_code="17010307"
+            )
+        ]
+        for u in users:
+            db.add(u)
+        db.commit()
 
     collector_user = db.query(User).filter(User.username == "collector").first()
     target_village_id = village_map.get("17010307")
+    if not target_village_id:
+        first_v = db.query(Village).first()
+        target_village_id = first_v.id if first_v else 1
+
+    # 3. Seed Sample Families & Members if no families exist
+    if db.query(Family).count() > 0:
+        print("Database already contains families, skipping sample families seed.")
+        db.close()
+        return
 
     # 3. Seed Sample Families & Members in ភូមិប្រាសាទត្រាវ
     sample_families = [

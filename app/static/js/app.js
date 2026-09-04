@@ -142,23 +142,23 @@ function calculateAgeFromDob(dobStr) {
 // --- Geographic Hierarchy Loader ---
 async function loadGeographicHierarchy() {
   try {
-    if (navigator.onLine) {
-      const res = await apiRequest("/api/geo/full-hierarchy");
-      if (res.ok) {
-        state.geoTree = await res.json();
+    const res = await apiRequest("/api/geo/full-hierarchy");
+    if (res.ok) {
+      state.geoTree = await res.json();
+      if (window.censusDB && window.censusDB.saveCachedGeo) {
         await window.censusDB.saveCachedGeo(state.geoTree);
       }
     } else {
-      // Offline: load cached hierarchy from IndexedDB
-      const cached = await window.censusDB.getCachedGeo();
-      if (cached) {
-        state.geoTree = cached;
-        console.log("[Offline] Loaded cached geo hierarchy");
+      if (window.censusDB && window.censusDB.getCachedGeo) {
+        const cached = await window.censusDB.getCachedGeo();
+        if (cached) state.geoTree = cached;
       }
     }
   } catch (err) {
-    const cached = await window.censusDB.getCachedGeo();
-    if (cached) state.geoTree = cached;
+    if (window.censusDB && window.censusDB.getCachedGeo) {
+      const cached = await window.censusDB.getCachedGeo();
+      if (cached) state.geoTree = cached;
+    }
   }
   populateGeoDropdowns();
 }
@@ -882,7 +882,7 @@ async function handleFamilyFormSubmit(e) {
   }
 
   // Emergency fetch if geoTree was completely empty
-  if (!villageId && navigator.onLine) {
+  if (!villageId) {
     try {
       const res = await apiRequest("/api/geo/full-hierarchy");
       if (res.ok) {
@@ -986,22 +986,29 @@ async function handleFamilyFormSubmit(e) {
   }
 
   try {
-    if (navigator.onLine) {
+    let saved = false;
+    try {
       const res = await apiRequest("/api/families", {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      if (!res.ok) {
+      if (res.ok) {
+        const data = await res.json();
+        window.showToast(`បានចុះបញ្ជីគ្រួសារជោគជ័យ! លេខកូដ៖ ${data.family_code}`, "success");
+        saved = true;
+      } else {
         const err = await res.json();
         throw new Error(err.detail || "បរាជ័យក្នុងការចុះឈ្មោះគ្រួសារ");
       }
-      const data = await res.json();
-      window.showToast(`បានចុះបញ្ជីគ្រួសារជោគជ័យ! លេខកូដ៖ ${data.family_code}`, "success");
-    } else {
-      // Offline mode: save into IndexedDB queue
-      await window.censusDB.savePendingFamily(payload);
-      await window.syncManager.updateUI();
-      window.showToast("រក្សាទុកក្នុងឧបករណ៍ (Offline) រួចរាល់! នឹង Sync ស្វ័យប្រវត្តិកាលណាមានអ៊ីនធឺណិត", "info");
+    } catch (apiErr) {
+      if (!saved && (apiErr.name === "TypeError" || !navigator.onLine || String(apiErr.message).includes("fetch"))) {
+        // Offline fallback: save into IndexedDB queue
+        await window.censusDB.savePendingFamily(payload);
+        await window.syncManager.updateUI();
+        window.showToast("រក្សាទុកក្នុងឧបករណ៍ (Offline) រួចរាល់! នឹង Sync ស្វ័យប្រវត្តិកាលណាមានអ៊ីនធឺណិត", "info");
+      } else {
+        throw apiErr;
+      }
     }
 
     // Reset Form & Close Modal
@@ -1045,13 +1052,34 @@ function resetRegistrationForm() {
 async function loadFamiliesList() {
   const tbody = document.getElementById("families-table-tbody");
   if (!tbody) return;
-  tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; color: #60a5fa;"></i> កំពុងផ្ទុកទិន្នន័យ...</td></tr>`;
+
+  const poorFilter = document.getElementById("filter-list-poor")?.value || "";
+  const statusFilter = document.getElementById("filter-list-status")?.value || "";
+  const searchVal = document.getElementById("filter-list-search")?.value || "";
+  const isDefaultFilter = !poorFilter && !statusFilter && !searchVal;
+
+  // Immediate rendering from memory or localStorage to prevent empty folder flicker
+  if (isDefaultFilter && state.familiesList && state.familiesList.length > 0) {
+    renderFamiliesTable(state.familiesList);
+  } else if (isDefaultFilter) {
+    const cached = localStorage.getItem("cached_families_list");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          state.familiesList = parsed;
+          renderFamiliesTable(parsed);
+        }
+      } catch (e) {}
+    }
+  }
+
+  // Show spinner if table currently has no rows or is showing the empty placeholder
+  if (!tbody.hasChildNodes() || tbody.innerHTML.trim() === "" || tbody.innerHTML.includes("folder-open")) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; color: #60a5fa;"></i> កំពុងផ្ទុកទិន្នន័យ...</td></tr>`;
+  }
 
   try {
-    const poorFilter = document.getElementById("filter-list-poor")?.value || "";
-    const statusFilter = document.getElementById("filter-list-status")?.value || "";
-    const searchVal = document.getElementById("filter-list-search")?.value || "";
-
     const params = new URLSearchParams();
     if (poorFilter) params.append("poor_category", poorFilter);
     if (statusFilter) params.append("status_filter", statusFilter);
@@ -1059,13 +1087,36 @@ async function loadFamiliesList() {
     params.append("limit", "1000");
 
     let families = [];
-    if (navigator.onLine) {
+    try {
       const res = await apiRequest(`/api/families?${params.toString()}`);
-      if (res.ok) families = await res.json();
+      if (res.ok) {
+        families = await res.json();
+        if (isDefaultFilter && Array.isArray(families) && families.length > 0) {
+          localStorage.setItem("cached_families_list", JSON.stringify(families));
+        }
+      } else {
+        console.warn("API /api/families returned status:", res.status);
+      }
+    } catch (fetchErr) {
+      console.warn("Fetch /api/families network error:", fetchErr);
+      if (isDefaultFilter) {
+        const cached = localStorage.getItem("cached_families_list");
+        if (cached) {
+          try { families = JSON.parse(cached); } catch (e) {}
+        }
+      }
     }
 
     // Also include pending offline families if any
-    const pending = await window.censusDB.getPendingFamilies();
+    let pending = [];
+    try {
+      if (window.censusDB && window.censusDB.getPendingFamilies) {
+        pending = await window.censusDB.getPendingFamilies();
+      }
+    } catch (dbErr) {
+      console.warn("Could not read pending families from IndexedDB:", dbErr);
+    }
+
     const offlineMapped = pending.map((f, idx) => ({
       id: "offline_" + idx,
       family_code: "ក្រៅបណ្តាញ (រង់ចាំ Sync)",
@@ -1083,6 +1134,14 @@ async function loadFamiliesList() {
     renderFamiliesTable(allFamilies);
   } catch (err) {
     console.error("Failed to load families:", err);
+    const cached = localStorage.getItem("cached_families_list");
+    if (isDefaultFilter && cached) {
+      try {
+        state.familiesList = JSON.parse(cached);
+        renderFamiliesTable(state.familiesList);
+        return;
+      } catch (e) {}
+    }
     tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; color: #f59e0b;"></i>មិនអាចទាញទិន្នន័យបានទេ</td></tr>`;
   }
 }
@@ -2701,6 +2760,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Load Dashboard by default
   loadDashboardStats();
+  // Preload Families List in background so tab 3 renders immediately
+  loadFamiliesList();
 });
 
 // --- Database Backup & Restore Module ---
@@ -3000,7 +3061,34 @@ function setGisMode(mode) {
     if (btnHeat) { btnHeat.className = "btn btn-sm btn-primary"; }
     if (gisLayerGroup) gisMapInstance.removeLayer(gisLayerGroup);
     if (gisDensityLayerGroup) gisMapInstance.addLayer(gisDensityLayerGroup);
-  }
+}
+
+function renderGisSummaryCards(summary) {
+  if (!summary) return;
+  const total = summary.total_households || 0;
+  const elTotal = document.getElementById("gis-stat-total");
+  const elP1 = document.getElementById("gis-stat-poor1");
+  const elP2 = document.getElementById("gis-stat-poor2");
+  const elGen = document.getElementById("gis-stat-general");
+  const elPop = document.getElementById("gis-stat-pop");
+
+  if (elTotal) elTotal.textContent = toKhmerDigits(total);
+  if (elP1) elP1.textContent = toKhmerDigits(summary.idpoor_1_count || 0);
+  if (elP2) elP2.textContent = toKhmerDigits(summary.idpoor_2_count || 0);
+  if (elGen) elGen.textContent = toKhmerDigits(summary.general_count || 0);
+  if (elPop) elPop.textContent = toKhmerDigits(summary.total_population || 0);
+
+  const p1Pct = total ? Math.round(((summary.idpoor_1_count || 0) / total) * 100) : 0;
+  const p2Pct = total ? Math.round(((summary.idpoor_2_count || 0) / total) * 100) : 0;
+  const genPct = total ? Math.round(((summary.general_count || 0) / total) * 100) : 0;
+
+  const elP1Pct = document.getElementById("gis-stat-poor1-pct");
+  const elP2Pct = document.getElementById("gis-stat-poor2-pct");
+  const elGenPct = document.getElementById("gis-stat-general-pct");
+
+  if (elP1Pct) elP1Pct.textContent = `${toKhmerDigits(p1Pct)}% នៃគ្រួសារសរុប`;
+  if (elP2Pct) elP2Pct.textContent = `${toKhmerDigits(p2Pct)}% នៃគ្រួសារសរុប`;
+  if (elGenPct) elGenPct.textContent = `${toKhmerDigits(genPct)}% នៃគ្រួសារសរុប`;
 }
 
 async function fetchAndRenderGisData() {
@@ -3022,38 +3110,26 @@ async function fetchAndRenderGisData() {
   if (poor) params.append("poor_category", poor);
   if (query) params.append("search", query);
 
+  const isDefaultGis = !vId && !poor && !query;
+  const cachedGis = localStorage.getItem("cached_gis_data");
+  if (isDefaultGis && cachedGis) {
+    try {
+      const parsedGis = JSON.parse(cachedGis);
+      renderGisSummaryCards(parsedGis.summary);
+    } catch (e) {}
+  }
+
   try {
     const res = await apiRequest(`/api/gis/map-data?${params.toString()}`);
     if (!res.ok) throw new Error("មិនអាចទាញយកទិន្នន័យ GIS បានទេ");
     const data = await res.json();
     state.gisData = data;
+    if (isDefaultGis) {
+      localStorage.setItem("cached_gis_data", JSON.stringify(data));
+    }
 
     // Update KPI cards
-    const summary = data.summary || {};
-    const total = summary.total_households || 0;
-    const elTotal = document.getElementById("gis-stat-total");
-    const elP1 = document.getElementById("gis-stat-poor1");
-    const elP2 = document.getElementById("gis-stat-poor2");
-    const elGen = document.getElementById("gis-stat-general");
-    const elPop = document.getElementById("gis-stat-pop");
-
-    if (elTotal) elTotal.textContent = toKhmerDigits(total);
-    if (elP1) elP1.textContent = toKhmerDigits(summary.idpoor_1_count || 0);
-    if (elP2) elP2.textContent = toKhmerDigits(summary.idpoor_2_count || 0);
-    if (elGen) elGen.textContent = toKhmerDigits(summary.general_count || 0);
-    if (elPop) elPop.textContent = toKhmerDigits(summary.total_population || 0);
-
-    const p1Pct = total ? Math.round(((summary.idpoor_1_count || 0) / total) * 100) : 0;
-    const p2Pct = total ? Math.round(((summary.idpoor_2_count || 0) / total) * 100) : 0;
-    const genPct = total ? Math.round(((summary.general_count || 0) / total) * 100) : 0;
-
-    const elP1Pct = document.getElementById("gis-stat-poor1-pct");
-    const elP2Pct = document.getElementById("gis-stat-poor2-pct");
-    const elGenPct = document.getElementById("gis-stat-general-pct");
-
-    if (elP1Pct) elP1Pct.textContent = `${toKhmerDigits(p1Pct)}% នៃគ្រួសារសរុប`;
-    if (elP2Pct) elP2Pct.textContent = `${toKhmerDigits(p2Pct)}% នៃគ្រួសារសរុប`;
-    if (elGenPct) elGenPct.textContent = `${toKhmerDigits(genPct)}% នៃគ្រួសារសរុប`;
+    renderGisSummaryCards(data.summary || {});
 
     // Populate Village filter if empty
     if (villageSelect && villageSelect.children.length <= 1 && data.villages) {
