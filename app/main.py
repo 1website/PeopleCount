@@ -5,13 +5,14 @@ root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
-from app.database import engine, Base
+from app.database import engine, Base, get_db
 from app.seed import init_db_and_seed
 from app.api import auth, geo, families, reports, sync, backup, gis
 
@@ -90,7 +91,7 @@ async def serve_sw():
 
 
 @app.get("/", response_class=HTMLResponse)
-async def serve_home(request: Request):
+async def serve_home(request: Request, db: Session = Depends(get_db)):
     headers = {
         "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
@@ -99,7 +100,29 @@ async def serve_home(request: Request):
     index_file = os.path.join(templates_dir, "index.html")
     if os.path.exists(index_file):
         with open(index_file, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read(), headers=headers)
+            content = f.read()
+
+        # Preload families and dashboard stats to guarantee 0ms instant display without empty states
+        try:
+            import json
+            from app.api.families import list_families
+            from app.api.reports import get_dashboard_stats
+            preloaded_families = list_families(limit=1000, db=db)
+            preloaded_stats = get_dashboard_stats(db=db)
+            fams_json = json.dumps(preloaded_families, default=str).replace("</script>", "<\\/script>")
+            stats_json = json.dumps(preloaded_stats, default=str).replace("</script>", "<\\/script>")
+            preload_tag = (
+                f'<script id="server-preloaded-data">\n'
+                f'  window.__PRELOADED_FAMILIES__ = {fams_json};\n'
+                f'  window.__PRELOADED_STATS__ = {stats_json};\n'
+                f'</script>\n'
+            )
+            if "</head>" in content:
+                content = content.replace("</head>", f"{preload_tag}</head>", 1)
+        except Exception as e:
+            print(f"Warning: Failed to inject preloaded data in serve_home: {e}")
+
+        return HTMLResponse(content=content, headers=headers)
     if templates:
         return templates.TemplateResponse(request=request, name="index.html", headers=headers)
     return HTMLResponse(content="<h1>Cambodia Population System is Running</h1>", status_code=200, headers=headers)

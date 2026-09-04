@@ -457,9 +457,59 @@ window.refreshCurrentView = function() {
   if (state.currentTab === "gis") loadGisMap();
 };
 
+window.reloadFamiliesData = async function() {
+  localStorage.removeItem("cached_families_list");
+  const sInput = document.getElementById("filter-list-search");
+  const pSelect = document.getElementById("filter-list-poor");
+  const stSelect = document.getElementById("filter-list-status");
+  if (sInput) sInput.value = "";
+  if (pSelect) pSelect.value = "";
+  if (stSelect) stSelect.value = "";
+  state.familiesCurrentPage = 1;
+  state.familiesList = null;
+  const tbody = document.getElementById("families-table-tbody");
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-solid fa-spinner fa-spin" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; color: #60a5fa;"></i> កំពុងផ្ទុកទិន្នន័យឡើងវិញ...</td></tr>`;
+  }
+  await loadFamiliesList(true);
+};
+
+window.refreshAllData = async function() {
+  localStorage.removeItem("cached_families_list");
+  localStorage.removeItem("cached_dashboard_stats");
+
+  const toast = document.createElement("div");
+  toast.className = "sync-toast info";
+  toast.style.cssText = "position: fixed; bottom: 20px; right: 20px; z-index: 9999; background: #1e293b; color: #38bdf8; border: 1px solid #38bdf8; padding: 12px 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); font-family: 'Kantumruy Pro', sans-serif; display: flex; align-items: center; gap: 8px;";
+  toast.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> កំពុងផ្ទុកទិន្នន័យឡើងវិញ...`;
+  document.body.appendChild(toast);
+
+  try {
+    await Promise.all([
+      loadDashboardStats(),
+      loadFamiliesList(true),
+      loadGeographicHierarchy()
+    ]);
+    if (state.currentTab === "gis") loadGisMap();
+    if (state.currentTab === "geo") loadGeoExplorer();
+    toast.innerHTML = `<i class="fa-solid fa-check" style="color: #34d399;"></i> ទិន្នន័យត្រូវបានផ្ទុកជោគជ័យ!`;
+    toast.style.borderColor = "#34d399";
+    toast.style.color = "#34d399";
+    setTimeout(() => toast.remove(), 2000);
+  } catch (e) {
+    console.warn("Refresh error:", e);
+    toast.remove();
+  }
+};
+
 // --- Dashboard View ---
 async function loadDashboardStats() {
-  // Immediately render cached stats if available to prevent empty/0 flashing
+  // 1. Immediately render preloaded stats from server if present
+  if (window.__PRELOADED_STATS__ && typeof window.__PRELOADED_STATS__ === "object") {
+    try { renderDashboard(window.__PRELOADED_STATS__); } catch (e) {}
+  }
+
+  // 2. Immediately render cached stats if available to prevent empty/0 flashing
   const cached = localStorage.getItem("cached_dashboard_stats");
   if (cached) {
     try { renderDashboard(JSON.parse(cached)); } catch (e) {}
@@ -482,6 +532,8 @@ async function loadDashboardStats() {
     if (!res.ok) {
       if (cached) {
         try { renderDashboard(JSON.parse(cached)); } catch (e) {}
+      } else if (window.__PRELOADED_STATS__) {
+        try { renderDashboard(window.__PRELOADED_STATS__); } catch (e) {}
       }
       return;
     }
@@ -492,6 +544,8 @@ async function loadDashboardStats() {
     console.warn("Could not load stats (offline):", err);
     if (cached) {
       try { renderDashboard(JSON.parse(cached)); } catch (e) {}
+    } else if (window.__PRELOADED_STATS__) {
+      try { renderDashboard(window.__PRELOADED_STATS__); } catch (e) {}
     }
   }
 }
@@ -1049,7 +1103,7 @@ function resetRegistrationForm() {
 }
 
 // --- Family Directory & Table View ---
-async function loadFamiliesList() {
+async function loadFamiliesList(forceFresh = false) {
   const tbody = document.getElementById("families-table-tbody");
   if (!tbody) return;
 
@@ -1058,19 +1112,24 @@ async function loadFamiliesList() {
   const searchVal = document.getElementById("filter-list-search")?.value || "";
   const isDefaultFilter = !poorFilter && !statusFilter && !searchVal;
 
-  // Immediate rendering from memory or localStorage to prevent empty folder flicker
-  if (isDefaultFilter && state.familiesList && state.familiesList.length > 0) {
-    renderFamiliesTable(state.familiesList);
-  } else if (isDefaultFilter) {
-    const cached = localStorage.getItem("cached_families_list");
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          state.familiesList = parsed;
-          renderFamiliesTable(parsed);
-        }
-      } catch (e) {}
+  // 1. Immediate rendering from memory, preloaded server data, or localStorage to prevent empty folder flicker
+  if (isDefaultFilter && !forceFresh) {
+    if (state.familiesList && state.familiesList.length > 0) {
+      renderFamiliesTable(state.familiesList);
+    } else if (window.__PRELOADED_FAMILIES__ && Array.isArray(window.__PRELOADED_FAMILIES__) && window.__PRELOADED_FAMILIES__.length > 0) {
+      state.familiesList = window.__PRELOADED_FAMILIES__;
+      renderFamiliesTable(state.familiesList);
+    } else {
+      const cached = localStorage.getItem("cached_families_list");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            state.familiesList = parsed;
+            renderFamiliesTable(parsed);
+          }
+        } catch (e) {}
+      }
     }
   }
 
@@ -1100,9 +1159,13 @@ async function loadFamiliesList() {
     } catch (fetchErr) {
       console.warn("Fetch /api/families network error:", fetchErr);
       if (isDefaultFilter) {
-        const cached = localStorage.getItem("cached_families_list");
-        if (cached) {
-          try { families = JSON.parse(cached); } catch (e) {}
+        if (window.__PRELOADED_FAMILIES__ && window.__PRELOADED_FAMILIES__.length > 0) {
+          families = window.__PRELOADED_FAMILIES__;
+        } else {
+          const cached = localStorage.getItem("cached_families_list");
+          if (cached) {
+            try { families = JSON.parse(cached); } catch (e) {}
+          }
         }
       }
     }
@@ -1129,20 +1192,38 @@ async function loadFamiliesList() {
       raw_data: f
     }));
 
+    // Fallback to preloaded if families is empty on default filter
+    if (isDefaultFilter && families.length === 0 && window.__PRELOADED_FAMILIES__ && window.__PRELOADED_FAMILIES__.length > 0) {
+      families = window.__PRELOADED_FAMILIES__;
+    }
+
     const allFamilies = [...offlineMapped, ...families];
     state.familiesList = allFamilies;
     renderFamiliesTable(allFamilies);
   } catch (err) {
     console.error("Failed to load families:", err);
-    const cached = localStorage.getItem("cached_families_list");
-    if (isDefaultFilter && cached) {
-      try {
-        state.familiesList = JSON.parse(cached);
+    if (isDefaultFilter) {
+      if (window.__PRELOADED_FAMILIES__ && window.__PRELOADED_FAMILIES__.length > 0) {
+        state.familiesList = window.__PRELOADED_FAMILIES__;
         renderFamiliesTable(state.familiesList);
         return;
-      } catch (e) {}
+      }
+      const cached = localStorage.getItem("cached_families_list");
+      if (cached) {
+        try {
+          state.familiesList = JSON.parse(cached);
+          renderFamiliesTable(state.familiesList);
+          return;
+        } catch (e) {}
+      }
     }
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;"><i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; color: #f59e0b;"></i>មិនអាចទាញទិន្នន័យបានទេ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 2.5rem; text-align: center;">
+      <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem; color: #f59e0b;"></i>
+      <div style="margin-bottom: 0.75rem;">មិនអាចទាញទិន្នន័យបានទេ</div>
+      <button type="button" class="btn btn-sm btn-gold" onclick="window.reloadFamiliesData()">
+        <i class="fa-solid fa-arrows-rotate"></i> ព្យាយាមម្តងទៀត
+      </button>
+    </td></tr>`;
   }
 }
 
@@ -1159,7 +1240,13 @@ function renderFamiliesTable(families) {
   if (state.familiesCurrentPage < 1) state.familiesCurrentPage = 1;
 
   if (total === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 3rem 1.5rem; text-align: center;"><i class="fa-regular fa-folder-open" style="font-size: 2rem; display: block; margin-bottom: 0.75rem; opacity: 0.4;"></i>មិនមានទិន្នន័យគ្រួសារដែលស្វែងរកទេ</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-dim" style="padding: 3rem 1.5rem; text-align: center;">
+      <i class="fa-regular fa-folder-open" style="font-size: 2.2rem; display: block; margin-bottom: 0.75rem; opacity: 0.4;"></i>
+      <div style="font-size: 1rem; margin-bottom: 0.85rem; color: #94a3b8;">មិនមានទិន្នន័យគ្រួសារដែលស្វែងរកទេ</div>
+      <button type="button" class="btn btn-sm btn-gold" onclick="window.reloadFamiliesData()" style="padding: 0.45rem 1.25rem; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+        <i class="fa-solid fa-arrows-rotate"></i> ផ្ទុកទិន្នន័យឡើងវិញ (Reload Data)
+      </button>
+    </td></tr>`;
     if (paginationContainer) paginationContainer.innerHTML = "";
     return;
   }
