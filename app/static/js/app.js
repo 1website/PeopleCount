@@ -125,6 +125,22 @@ async function apiRequest(url, options = {}) {
   }
 }
 
+// Safe response error parser that handles non-JSON / HTML / plain text gracefully
+async function parseErrorResponse(res, defaultMsg = "មានបញ្ហាក្នុងប្រព័ន្ធ") {
+  try {
+    const data = await res.json();
+    return data.detail || data.message || defaultMsg;
+  } catch (_) {
+    try {
+      const text = await res.text();
+      if (text && text.trim().length > 0 && text.length < 150) {
+        return text.trim();
+      }
+    } catch (_) {}
+    return defaultMsg;
+  }
+}
+
 // --- Age Calculation Helper ---
 function calculateAgeFromDob(dobStr) {
   if (!dobStr) return 0;
@@ -1071,17 +1087,24 @@ async function handleFamilyFormSubmit(e) {
         window.showToast(`បានចុះបញ្ជីគ្រួសារជោគជ័យ! លេខកូដ៖ ${data.family_code}`, "success");
         saved = true;
       } else {
-        const err = await res.json();
-        throw new Error(err.detail || "បរាជ័យក្នុងការចុះឈ្មោះគ្រួសារ");
+        const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការចុះឈ្មោះគ្រួសារ");
+        if (res.status >= 500) {
+          // Server error fallback: save offline safely
+          await window.censusDB.savePendingFamily(payload);
+          await window.syncManager.updateUI();
+          window.showToast("បានរក្សាទុកក្នុងឧបករណ៍ (Offline Queue) រួចរាល់! នឹងធ្វើសមកាលកម្មស្វ័យប្រវត្តិកាលណា Server ដំណើរការពេញលេញ", "info");
+          saved = true;
+        } else {
+          throw new Error(errMsg);
+        }
       }
     } catch (apiErr) {
-      if (!saved && (apiErr.name === "TypeError" || !navigator.onLine || String(apiErr.message).includes("fetch"))) {
+      if (!saved) {
         // Offline fallback: save into IndexedDB queue
         await window.censusDB.savePendingFamily(payload);
         await window.syncManager.updateUI();
         window.showToast("រក្សាទុកក្នុងឧបករណ៍ (Offline) រួចរាល់! នឹង Sync ស្វ័យប្រវត្តិកាលណាមានអ៊ីនធឺណិត", "info");
-      } else {
-        throw apiErr;
+        saved = true;
       }
     }
 
@@ -1644,8 +1667,8 @@ async function handleEditFamilyFormSubmit(e) {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "បរាជ័យក្នុងការកែប្រែព័ត៌មានគ្រួសារ");
+      const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការកែប្រែព័ត៌មានគ្រួសារ");
+      throw new Error(errMsg);
     }
 
     window.showToast("បានកែប្រែព័ត៌មានគ្រួសារដោយជោគជ័យ!", "success");
@@ -1833,8 +1856,8 @@ async function handleSingleMemberFormSubmit(e) {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || (memberId ? "បរាជ័យក្នុងការកែប្រែសមាជិក" : "បរាជ័យក្នុងការបន្ថែមសមាជិក"));
+      const errMsg = await parseErrorResponse(res, memberId ? "បរាជ័យក្នុងការកែប្រែសមាជិក" : "បរាជ័យក្នុងការបន្ថែមសមាជិក");
+      throw new Error(errMsg);
     }
 
     const actionText = memberId ? "បានកែប្រែព័ត៌មានសមាជិក" : "បានបន្ថែមសមាជិក";
@@ -1867,8 +1890,8 @@ async function deleteSingleMember(familyId, memberId, memberName) {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "បរាជ័យក្នុងការលុបសមាជិក");
+      const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការលុបសមាជិក");
+      throw new Error(errMsg);
     }
 
     window.showToast(`បានលុបសមាជិក "${memberName}" ដោយជោគជ័យ!`, "success");
@@ -2248,8 +2271,8 @@ async function handleUserFormSubmit(e) {
         body: JSON.stringify(payload)
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "បរាជ័យក្នុងការបង្កើតគណនី");
+        const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការបង្កើតគណនី");
+        throw new Error(errMsg);
       }
       window.showToast("បានបង្កើតគណនីអ្នកប្រើប្រាស់ថ្មីដោយជោគជ័យ", "success");
     } else {
@@ -2270,8 +2293,8 @@ async function handleUserFormSubmit(e) {
         body: JSON.stringify(payload)
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "បរាជ័យក្នុងការកែប្រែគណនី");
+        const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការកែប្រែគណនី");
+        throw new Error(errMsg);
       }
       const updatedUser = await res.json();
       if (state.currentUser && state.currentUser.id === updatedUser.id) {
@@ -2295,8 +2318,8 @@ async function toggleUserStatus(userId) {
   try {
     const res = await apiRequest(`/api/auth/users/${userId}/toggle-status`, { method: "PATCH" });
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "បរាជ័យក្នុងការផ្លាស់ប្តូរស្ថានភាព");
+      const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការផ្លាស់ប្តូរស្ថានភាព");
+      throw new Error(errMsg);
     }
     const updated = await res.json();
     window.showToast(`គណនី ${updated.username} ត្រូវបាន ${updated.is_active ? 'បើកដំណើរការ' : 'ផ្អាក'}`, "success");
@@ -2311,8 +2334,8 @@ async function deleteUser(userId) {
   try {
     const res = await apiRequest(`/api/auth/users/${userId}`, { method: "DELETE" });
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "បរាជ័យក្នុងការលុបគណនី");
+      const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការលុបគណនី");
+      throw new Error(errMsg);
     }
     window.showToast("បានលុបគណនីដោយជោគជ័យ", "success");
     loadUsersList();
@@ -2332,8 +2355,8 @@ async function loadUserLogs() {
   try {
     const res = await apiRequest("/api/auth/logs?limit=200");
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "បរាជ័យក្នុងការទាញយកកំណត់ហេតុ");
+      const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការទាញយកកំណត់ហេតុ");
+      throw new Error(errMsg);
     }
     allAuditLogs = await res.json();
     renderLogsTable();
@@ -2913,8 +2936,8 @@ async function downloadBackupSnapshot() {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "បរាជ័យក្នុងការទាញយក Backup");
+      const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការទាញយក Backup");
+      throw new Error(errMsg);
     }
 
     const blob = await res.blob();
@@ -3015,8 +3038,8 @@ function setupBackupRestoreUI() {
       });
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "បរាជ័យក្នុងការស្តារទិន្នន័យ");
+        const errMsg = await parseErrorResponse(res, "បរាជ័យក្នុងការស្តារទិន្នន័យ");
+        throw new Error(errMsg);
       }
 
       const result = await res.json();

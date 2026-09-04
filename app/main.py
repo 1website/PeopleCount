@@ -8,7 +8,7 @@ if root_dir not in sys.path:
 from fastapi import FastAPI, Request, Depends
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -43,6 +43,37 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "traceback": traceback.format_exc()}
+    )
+
+@app.get("/api/diagnostic")
+def diagnostic():
+    import traceback
+    from app.database import SessionLocal
+    info = {
+        "status": "ok",
+        "is_vercel": bool(os.getenv("VERCEL")),
+        "database_url_env": bool(os.getenv("DATABASE_URL")),
+        "database_engine": str(engine.url),
+    }
+    try:
+        from app.models import Family, Member, Village, User
+        db = SessionLocal()
+        info["family_count"] = db.query(Family).count()
+        info["member_count"] = db.query(Member).count()
+        info["village_count"] = db.query(Village).count()
+        info["user_count"] = db.query(User).count()
+        db.close()
+    except Exception as e:
+        info["error"] = str(e)
+        info["traceback"] = traceback.format_exc()
+    return info
 
 # Mount API routers
 app.include_router(auth.router)
