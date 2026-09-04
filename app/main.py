@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
 from app.seed import init_db_and_seed
-from app.api import auth, geo, families, reports, sync, backup
+from app.api import auth, geo, families, reports, sync, backup, gis
 
 app = FastAPI(
     title="ប្រព័ន្ធគ្រប់គ្រងស្ថិតិប្រជាជន និងគ្រួសារកម្ពុជា (Cambodia Population & Family Census)",
@@ -50,6 +50,7 @@ app.include_router(families.router)
 app.include_router(reports.router)
 app.include_router(sync.router)
 app.include_router(backup.router)
+app.include_router(gis.router)
 
 # Static and Templates
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

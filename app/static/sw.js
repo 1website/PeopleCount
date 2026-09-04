@@ -1,11 +1,11 @@
-const CACHE_NAME = "cambodia-census-v3.3";
+const CACHE_NAME = "cambodia-census-v3.4";
 const ASSETS_TO_CACHE = [
   "/",
-  "/static/css/style.css?v=3.3",
-  "/static/css/print.css?v=3.3",
-  "/static/js/db.js?v=3.3",
-  "/static/js/sync.js?v=3.3",
-  "/static/js/app.js?v=3.3",
+  "/static/css/style.css?v=3.4",
+  "/static/css/print.css?v=3.4",
+  "/static/js/db.js?v=3.4",
+  "/static/js/sync.js?v=3.4",
+  "/static/js/app.js?v=3.4",
   "/static/manifest.json",
   "/static/icons/icon-192.svg",
   "/static/icons/icon-512.svg"

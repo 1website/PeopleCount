@@ -525,12 +525,129 @@ def test_collector_permissions_and_family_management():
     print("[OK] Collector permissions & family/member management (View/Edit/Add allowed, Approve/Delete forbidden) passed")
 
 
+def test_gis_mapping_and_gps_coordinates():
+    # 1. Login as collector
+    collector_auth = client.post("/api/auth/login", json={"username": "collector", "password": "collector123"}).json()
+    headers = {"Authorization": f"Bearer {collector_auth['access_token']}"}
+
+    # 2. Fetch GIS map data
+    res = client.get("/api/gis/map-data", headers=headers)
+    assert res.status_code == 200, f"GIS map data failed: {res.text}"
+    gis_data = res.json()
+    assert "summary" in gis_data
+    assert "villages" in gis_data
+    assert "households" in gis_data
+    assert "center" in gis_data
+
+    summary = gis_data["summary"]
+    assert "total_households" in summary
+    assert "idpoor_1_count" in summary
+    assert "idpoor_2_count" in summary
+    assert "general_count" in summary
+    assert "total_population" in summary
+    assert summary["total_households"] >= 1
+
+    # Check village coordinates
+    villages = gis_data["villages"]
+    assert len(villages) >= 1
+    assert villages[0]["latitude"] is not None
+    assert villages[0]["longitude"] is not None
+
+    # Check households data structure
+    households = gis_data["households"]
+    assert len(households) >= 1
+    sample_h = households[0]
+    assert "family_code" in sample_h
+    assert "head_name" in sample_h
+    assert "members_count" in sample_h
+    assert "poor_category" in sample_h
+    assert "latitude" in sample_h
+    assert "longitude" in sample_h
+
+    # 3. Test filtering by poverty category
+    res_poor1 = client.get("/api/gis/map-data?poor_category=IDPOOR_1", headers=headers)
+    assert res_poor1.status_code == 200
+    p1_data = res_poor1.json()
+    for h in p1_data["households"]:
+        assert h["poor_category"] == "IDPOOR_1"
+
+    # 4. Create family with explicit GPS coordinates
+    v_id = villages[0]["id"]
+    test_lat = 13.586123
+    test_lng = 103.714567
+    fam_payload = {
+        "village_id": v_id,
+        "poor_category": "IDPOOR_1",
+        "address_note": "GIS GPS Field Test House",
+        "latitude": test_lat,
+        "longitude": test_lng,
+        "status": "APPROVED",
+        "members": [
+            {
+                "full_name": "GIS Test Family Head",
+                "gender": "MALE",
+                "nationality": "ខ្មែរ",
+                "dob": "1990-01-01",
+                "relation": "HEAD",
+                "education_status": "SECONDARY",
+                "dropout_status": "COMPLETED",
+                "dropout_grade": "12",
+                "birth_cert": "12345",
+                "disability": "គ្មាន",
+                "occupation": "Farmer",
+                "current_address": "Prasat Trav"
+            }
+        ]
+    }
+    create_res = client.post("/api/families", json=fam_payload, headers=headers)
+    assert create_res.status_code == 200, f"Failed to create GIS test family: {create_res.text}"
+    created_fam = create_res.json()
+    fam_id = created_fam["id"]
+    assert abs(created_fam["latitude"] - test_lat) < 0.00001
+    assert abs(created_fam["longitude"] - test_lng) < 0.00001
+
+    # 5. Update GPS coordinates via family edit
+    new_lat = 13.587890
+    new_lng = 103.716543
+    edit_res = client.put(
+        f"/api/families/{fam_id}",
+        json={
+            "poor_category": "IDPOOR_2",
+            "address_note": "Updated GIS House GPS",
+            "latitude": new_lat,
+            "longitude": new_lng
+        },
+        headers=headers
+    )
+    assert edit_res.status_code == 200, f"Failed to edit family coordinates: {edit_res.text}"
+    fam_check = client.get(f"/api/families/{fam_id}").json()
+    assert abs(fam_check["latitude"] - new_lat) < 0.00001
+    assert abs(fam_check["longitude"] - new_lng) < 0.00001
+    assert fam_check["poor_category"] == "IDPOOR_2"
+
+    # Verify updated coordinates show up in GIS map endpoint
+    res_verify = client.get(f"/api/gis/map-data?search={created_fam['family_code']}", headers=headers)
+    assert res_verify.status_code == 200
+    found = [h for h in res_verify.json()["households"] if h["id"] == fam_id]
+    assert len(found) == 1
+    assert abs(found[0]["latitude"] - new_lat) < 0.00001
+    assert abs(found[0]["longitude"] - new_lng) < 0.00001
+
+    # 6. Clean up as Admin
+    admin_auth = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"}).json()
+    admin_headers = {"Authorization": f"Bearer {admin_auth['access_token']}"}
+    client.delete(f"/api/families/{fam_id}", headers=admin_headers)
+
+    print("[OK] GIS map data & GPS coordinates (Create, Read, Update, Filter) passed")
+
+
 if __name__ == "__main__":
     print("\n--- Running System Integration Tests ---")
     test_login_and_roles()
     test_geographic_hierarchy()
     test_family_and_member_registration()
     test_collector_permissions_and_family_management()
+    test_gis_mapping_and_gps_coordinates()
     test_reporting_and_excel()
     test_offline_sync()
     test_user_management_crud()

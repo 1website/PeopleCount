@@ -50,6 +50,8 @@ def populate_family_metadata(f: Family) -> dict:
         "family_code": f.family_code,
         "poor_category": f.poor_category,
         "address_note": f.address_note,
+        "latitude": f.latitude,
+        "longitude": f.longitude,
         "status": f.status,
         "created_at": f.created_at,
         "updated_at": f.updated_at,
@@ -128,6 +130,8 @@ def create_family(
         family_code=family_code,
         poor_category=data.poor_category,
         address_note=data.address_note,
+        latitude=data.latitude,
+        longitude=data.longitude,
         status=status_val,
         created_by_id=current_user.id if current_user else None,
         offline_client_id=data.offline_client_id
@@ -190,6 +194,10 @@ def update_family(
         fam.poor_category = data.poor_category
     if data.address_note is not None:
         fam.address_note = data.address_note
+    if data.latitude is not None:
+        fam.latitude = data.latitude
+    if data.longitude is not None:
+        fam.longitude = data.longitude
     if data.village_id is not None:
         fam.village_id = data.village_id
     if current_user.role == "ADMIN" and data.status is not None:

@@ -26,7 +26,11 @@
   <meta http-equiv="Expires" content="0" />
 
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="/static/css/style.css?v=3.3" />
+  <link rel="stylesheet" href="/static/css/style.css?v=3.4" />
+
+  <!-- Leaflet GIS Map Library -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 
 <body>
@@ -49,9 +53,9 @@
         </div>
       </div>
 
-      <!-- The 5 Core Functions Navigation on the Left -->
+      <!-- The Core Functions Navigation on the Left -->
       <div class="sidebar-section-title" id="sidebar-menu-title">
-        <i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៦
+        <i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៨
       </div>
 
       <nav class="sidebar-nav">
@@ -108,6 +112,14 @@
           <div class="nav-label">
             <span class="nav-title">៧. បម្រុងទុក & ស្តារទិន្នន័យ</span>
             <span class="nav-sub">1-Click Cloud Snapshot</span>
+          </div>
+        </a>
+
+        <a class="nav-item" data-tab="gis" id="nav-item-gis">
+          <div class="nav-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+          <div class="nav-label">
+            <span class="nav-title">៨. ផែនទីភូមិសាស្ត្រ GIS</span>
+            <span class="nav-sub">Poverty Map & Hotspots</span>
           </div>
         </a>
       </nav>
@@ -767,6 +779,116 @@
           </div>
         </section>
 
+        <!-- 8. GIS & TECHNOLOGY TAB -->
+        <section id="view-gis" class="view-section">
+          <!-- Top KPI Metrics -->
+          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1rem;">
+            <div class="stat-card" style="border-left: 4px solid #3b82f6;">
+              <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;"><i class="fa-solid fa-house-chimney"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">ខ្នងផ្ទះលើផែនទីសរុប</span>
+                <h3 class="stat-val" id="gis-stat-total">0</h3>
+                <span class="stat-sub text-dim">គ្រួសារមានទីតាំង</span>
+              </div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #ef4444;">
+              <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #f87171;"><i class="fa-solid fa-hand-holding-heart"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">ក្រ១ (IDPoor 1)</span>
+                <h3 class="stat-val" id="gis-stat-poor1" style="color: #f87171;">0</h3>
+                <span class="stat-sub" id="gis-stat-poor1-pct" style="color: #fca5a5;">0% នៃគ្រួសារសរុប</span>
+              </div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+              <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;"><i class="fa-solid fa-shield-heart"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">ក្រ២ (IDPoor 2)</span>
+                <h3 class="stat-val" id="gis-stat-poor2" style="color: #fbbf24;">0</h3>
+                <span class="stat-sub" id="gis-stat-poor2-pct" style="color: #fcd34d;">0% នៃគ្រួសារសរុប</span>
+              </div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #10b981;">
+              <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #34d399;"><i class="fa-solid fa-people-roof"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">គ្រួសារទូទៅ (General)</span>
+                <h3 class="stat-val" id="gis-stat-general" style="color: #34d399;">0</h3>
+                <span class="stat-sub" id="gis-stat-general-pct" style="color: #6ee7b7;">0% នៃគ្រួសារសរុប</span>
+              </div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #a855f7;">
+              <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;"><i class="fa-solid fa-users"></i></div>
+              <div class="stat-info">
+                <span class="stat-label">ប្រជាជនរស់នៅសរុប</span>
+                <h3 class="stat-val" id="gis-stat-pop" style="color: #c084fc;">0</h3>
+                <span class="stat-sub text-dim">នាក់ក្នុងតំបន់</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- GIS Control & Filter Toolbar -->
+          <div class="card" style="margin-bottom: 1rem; padding: 0.9rem 1.25rem;">
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between;">
+              <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; flex: 1; min-width: 280px;">
+                <select id="gis-filter-village" class="form-select" style="min-width: 170px; font-size: 0.85rem;">
+                  <option value="">-- ភូមិទាំងអស់ (All Villages) --</option>
+                </select>
+                <select id="gis-filter-poor" class="form-select" style="min-width: 160px; font-size: 0.85rem;">
+                  <option value="">-- ស្ថានភាពក្រីក្រទាំងអស់ --</option>
+                  <option value="IDPOOR_1">ក្រ១ (IDPoor 1)</option>
+                  <option value="IDPOOR_2">ក្រ២ (IDPoor 2)</option>
+                  <option value="GENERAL">ទូទៅ (General)</option>
+                </select>
+                <div style="position: relative; flex: 1; min-width: 180px;">
+                  <input type="text" id="gis-filter-search" class="form-input" placeholder="ស្វែងរកតាមកូដគ្រួសារ ឬឈ្មោះ..." style="width: 100%; padding-left: 2rem; font-size: 0.85rem;" />
+                  <i class="fa-solid fa-magnifying-glass" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 0.8rem;"></i>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <div class="btn-group" style="display: inline-flex; background: var(--bg-surface); padding: 2px; border-radius: 6px; border: 1px solid var(--border-color);">
+                  <button type="button" id="btn-gis-mode-pins" class="btn btn-sm btn-primary" title="បង្ហាញសញ្ញាសម្គាល់ខ្នងផ្ទះ">
+                    <i class="fa-solid fa-location-dot"></i> <span class="hide-mobile">ខ្នងផ្ទះ</span>
+                  </button>
+                  <button type="button" id="btn-gis-mode-heatmap" class="btn btn-sm btn-outline" title="បង្ហាញដង់ស៊ីតេភាពក្រីក្រ">
+                    <i class="fa-solid fa-circle-nodes"></i> <span class="hide-mobile">ដង់ស៊ីតេក្រីក្រ</span>
+                  </button>
+                </div>
+                <button type="button" id="btn-gis-recenter" class="btn btn-sm btn-outline" title="តម្រង់ទីតាំងកណ្តាលភូមិ">
+                  <i class="fa-solid fa-crosshairs"></i> <span class="hide-mobile">ចំណុចកណ្តាល</span>
+                </button>
+                <button type="button" id="btn-gis-refresh" class="btn btn-sm btn-outline" title="ផ្ទុកទិន្នន័យឡើងវិញ">
+                  <i class="fa-solid fa-rotate-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Map View Canvas Container with Floating Legend -->
+          <div class="card" style="padding: 0; overflow: hidden; position: relative; border: 1px solid var(--border-color);">
+            <div id="gis-map" style="width: 100%; height: 620px; min-height: 480px; z-index: 1;"></div>
+            
+            <!-- Floating Map Legend -->
+            <div class="gis-legend-overlay">
+              <div class="gis-legend-title"><i class="fa-solid fa-layer-group"></i> សញ្ញាសម្គាល់ផែនទី</div>
+              <div class="gis-legend-item">
+                <span class="gis-legend-dot dot-poor1"></span>
+                <span>ក្រ១ (IDPoor 1 - ក្រីក្រខ្លាំង)</span>
+              </div>
+              <div class="gis-legend-item">
+                <span class="gis-legend-dot dot-poor2"></span>
+                <span>ក្រ២ (IDPoor 2 - ក្រីក្រមធ្យម)</span>
+              </div>
+              <div class="gis-legend-item">
+                <span class="gis-legend-dot dot-general"></span>
+                <span>ទូទៅ (General)</span>
+              </div>
+              <div class="gis-legend-item">
+                <span class="gis-legend-dot dot-admin"></span>
+                <span>សាលាឃុំ/មជ្ឈមណ្ឌលភូមិ</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
     </div> <!-- .app-main-wrapper -->
   </div> <!-- .app-layout -->
@@ -845,6 +967,23 @@
                 </label>
                 <input type="text" id="form-address-note" class="form-input"
                   placeholder="ឧ. ផ្ទះលេខ..., ក្រុមទី..., ក្បែរវត្ត/ប្រាសាទ..." style="width: 100%;" />
+              </div>
+
+              <div style="grid-column: 1 / -1; margin-top: 0.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-location-crosshairs" style="color: #60a5fa;"></i>
+                    <span>កូអរដោនេភូមិសាស្ត្រ GPS (Latitude, Longitude)</span>
+                  </label>
+                  <button type="button" id="btn-get-current-gps" class="btn btn-sm btn-outline" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">
+                    <i class="fa-solid fa-crosshairs"></i> យកទីតាំង GPS បច្ចុប្បន្ន
+                  </button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+                  <input type="number" step="any" id="form-latitude" class="form-input" placeholder="Latitude ឧ. 13.585200" style="width: 100%; font-family: monospace; font-size: 0.85rem;" />
+                  <input type="number" step="any" id="form-longitude" class="form-input" placeholder="Longitude ឧ. 103.712500" style="width: 100%; font-family: monospace; font-size: 0.85rem;" />
+                </div>
+                <small id="gps-status-feedback" class="text-dim" style="font-size: 0.72rem; margin-top: 0.2rem; display: block;">* ចុចលើប៊ូតុងខាងលើពេលចុះដល់ខ្នងផ្ទះ ដើម្បីចាប់យកទីតាំងស្វ័យប្រវត្តិ ឬវាយបញ្ចូលផ្ទាល់</small>
               </div>
             </div>
           </div>
@@ -1048,6 +1187,23 @@
               <textarea id="edit-family-address" class="form-input" rows="3"
                 placeholder="ឧ. ផ្ទះលេខ..., ខាងត្បូងវត្ត, ផ្លូវលំ..." style="width: 100%; resize: vertical;"></textarea>
             </div>
+
+            <div class="member-card-field-group">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+                  <i class="fa-solid fa-location-crosshairs" style="color: #60a5fa;"></i>
+                  <span>កូអរដោនេភូមិសាស្ត្រ GPS</span>
+                </label>
+                <button type="button" id="btn-get-current-gps-edit" class="btn btn-sm btn-outline" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);">
+                  <i class="fa-solid fa-crosshairs"></i> យក GPS បច្ចុប្បន្ន
+                </button>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                <input type="number" step="any" id="edit-family-lat" class="form-input" placeholder="Latitude ឧ. 13.585200" style="width: 100%; font-family: monospace; font-size: 0.82rem;" />
+                <input type="number" step="any" id="edit-family-lng" class="form-input" placeholder="Longitude ឧ. 103.712500" style="width: 100%; font-family: monospace; font-size: 0.82rem;" />
+              </div>
+              <small id="gps-status-feedback-edit" class="text-dim" style="font-size: 0.7rem; margin-top: 0.2rem; display: block;">* កូអរដោនេទីតាំងខ្នងផ្ទះលើផែនទី</small>
+            </div>
           </div>
         </div>
 
@@ -1223,9 +1379,9 @@
   </div>
 
   <!-- Scripts -->
-  <script src="/static/js/db.js?v=3.3"></script>
-  <script src="/static/js/sync.js?v=3.3"></script>
-  <script src="/static/js/app.js?v=3.3"></script>
+  <script src="/static/js/db.js?v=3.4"></script>
+  <script src="/static/js/sync.js?v=3.4"></script>
+  <script src="/static/js/app.js?v=3.4"></script>
 </body>
 
 </html>

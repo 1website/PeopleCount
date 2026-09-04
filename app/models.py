@@ -1,6 +1,6 @@
 import datetime
 from sqlalchemy import (
-    Column, Integer, String, Boolean, Date, DateTime, ForeignKey, Text, Enum
+    Column, Integer, Float, String, Boolean, Date, DateTime, ForeignKey, Text, Enum
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -59,6 +59,8 @@ class Village(Base):
     code = Column(String(8), unique=True, index=True, nullable=False)  # e.g., '12010101'
     name_kh = Column(String(100), nullable=False)
     name_en = Column(String(100), nullable=False)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
 
     commune = relationship("Commune", back_populates="villages")
     families = relationship("Family", back_populates="village", cascade="all, delete-orphan")
@@ -93,6 +95,8 @@ class Family(Base):
     # Poverty category: 'IDPOOR_1' (ក្រ១), 'IDPOOR_2' (ក្រ២), 'GENERAL' (ទូទៅ)
     poor_category = Column(String(20), default="GENERAL", nullable=False)
     address_note = Column(String(255), nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     # Status: 'DRAFT', 'SUBMITTED', 'APPROVED'
     status = Column(String(20), default="APPROVED", nullable=False)
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)

@@ -204,6 +204,8 @@ class FamilyBase(BaseModel):
     village_id: int
     poor_category: str = "GENERAL"  # IDPOOR_1, IDPOOR_2, GENERAL
     address_note: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     status: str = "APPROVED"  # DRAFT, PENDING_REVIEW, APPROVED
 
 
@@ -216,6 +218,8 @@ class FamilyUpdate(BaseModel):
     poor_category: Optional[str] = None
     address_note: Optional[str] = None
     village_id: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     status: Optional[str] = None
 
 

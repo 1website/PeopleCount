@@ -47,6 +47,56 @@ def init_db_and_seed(force: bool = False):
                 conn.commit()
             except Exception:
                 pass
+
+            # families.latitude & families.longitude
+            try:
+                conn.execute(text("ALTER TABLE families ADD COLUMN latitude FLOAT"))
+                conn.commit()
+            except Exception:
+                pass
+            try:
+                conn.execute(text("ALTER TABLE families ADD COLUMN longitude FLOAT"))
+                conn.commit()
+            except Exception:
+                pass
+
+            # villages.latitude & villages.longitude
+            try:
+                conn.execute(text("ALTER TABLE villages ADD COLUMN latitude FLOAT"))
+                conn.commit()
+            except Exception:
+                pass
+            try:
+                conn.execute(text("ALTER TABLE villages ADD COLUMN longitude FLOAT"))
+                conn.commit()
+            except Exception:
+                pass
+
+            # Update village default coordinates
+            try:
+                conn.execute(text("UPDATE villages SET latitude = 13.5852, longitude = 103.7125 WHERE code = '17010307' AND latitude IS NULL"))
+                conn.commit()
+            except Exception:
+                pass
+
+            # Distribute existing families without coordinates around Prasat Trav Village center
+            try:
+                conn.execute(text("""
+                    UPDATE families 
+                    SET latitude = 13.5852 + (((id * 7) % 13) - 6) * 0.0009,
+                        longitude = 103.7125 + (((id * 5) % 11) - 5) * 0.0011
+                    WHERE latitude IS NULL OR longitude IS NULL
+                """))
+                conn.commit()
+            except Exception:
+                pass
+
+            # Fix collector assigned_geo_code if pointing to obsolete code
+            try:
+                conn.execute(text("UPDATE users SET assigned_geo_code = '17010307' WHERE username = 'collector' AND (assigned_geo_code IS NULL OR assigned_geo_code = '17010312')"))
+                conn.commit()
+            except Exception:
+                pass
     except Exception as e:
         print(f"Migration error: {e}")
 
@@ -117,7 +167,16 @@ def init_db_and_seed(force: bool = False):
                 db.flush()
 
                 for v_item in c_item["villages"]:
-                    vill = Village(commune_id=comm.id, code=v_item["code"], name_kh=v_item["name_kh"], name_en=v_item["name_en"])
+                    vill_lat = 13.5852 if v_item["code"] == "17010307" else None
+                    vill_lng = 103.7125 if v_item["code"] == "17010307" else None
+                    vill = Village(
+                        commune_id=comm.id,
+                        code=v_item["code"],
+                        name_kh=v_item["name_kh"],
+                        name_en=v_item["name_en"],
+                        latitude=vill_lat,
+                        longitude=vill_lng
+                    )
                     db.add(vill)
                     db.flush()
                     village_map[v_item["code"]] = vill.id
@@ -263,6 +322,8 @@ def init_db_and_seed(force: bool = False):
             family_code=f_data["code"],
             poor_category=f_data["poor"],
             address_note=f_data["address"],
+            latitude=f_data.get("lat", 13.5852 + (len(sample_families) - 2) * 0.0012),
+            longitude=f_data.get("lng", 103.7125 + (len(sample_families) - 2) * 0.0015),
             status=f_data["status"],
             created_by_id=collector_user.id if collector_user else None
         )

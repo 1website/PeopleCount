@@ -15,13 +15,18 @@ const state = {
   familiesList: [],
   familiesCurrentPage: 1,
   familiesPageSize: 15,
-  currentTab: "dashboard"
+  currentTab: "dashboard",
+  gisMap: null,
+  gisLayerGroup: null,
+  gisDensityLayerGroup: null,
+  gisMode: "pins",
+  gisData: null
 };
 
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=3.2")
+    navigator.serviceWorker.register("/static/sw.js?v=3.4")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
@@ -389,13 +394,14 @@ const TAB_TITLES = {
   "geo": `<i class="fa-solid fa-sitemap" style="color: var(--gold-light); margin-right: 8px;"></i> រចនាសម្ព័ន្ធរដ្ឋបាលភូមិសាស្ត្រកម្ពុជា ៤ ថ្នាក់`,
   "reports": `<i class="fa-solid fa-file-excel" style="color: var(--gold-light); margin-right: 8px;"></i> របាយការណ៍ និងនាំចេញឯកសាររដ្ឋបាល`,
   "users": `<i class="fa-solid fa-users-gear" style="color: var(--gold-light); margin-right: 8px;"></i> គ្រប់គ្រងអ្នកប្រើប្រាស់ និងសិទ្ធិ (User Management)`,
-  "backup": `<i class="fa-solid fa-database" style="color: var(--gold-light); margin-right: 8px;"></i> បម្រុងទុក និងស្តារទិន្នន័យ (1-Click Backup & Restore)`
+  "backup": `<i class="fa-solid fa-database" style="color: var(--gold-light); margin-right: 8px;"></i> បម្រុងទុក និងស្តារទិន្នន័យ (1-Click Backup & Restore)`,
+  "gis": `<i class="fa-solid fa-map-location-dot" style="color: var(--gold-light); margin-right: 8px;"></i> ផែនទីភូមិសាស្ត្រ GIS និងផែនទីកម្រិតភាពក្រីក្រ (Interactive GIS & Poverty Map)`
 };
 
 function switchTab(tabId) {
-  // If user role is COLLECTOR (non-admin), restrict access to registration and families tabs
+  // If user role is COLLECTOR (non-admin), restrict access to registration, families, and gis tabs
   if (state.currentUser && state.currentUser.role !== "ADMIN") {
-    if (tabId !== "registration" && tabId !== "families") {
+    if (tabId !== "registration" && tabId !== "families" && tabId !== "gis") {
       tabId = "registration";
     }
   }
@@ -422,6 +428,7 @@ function switchTab(tabId) {
   if (tabId === "geo") loadGeoExplorer();
   if (tabId === "users") loadUsersList();
   if (tabId === "backup") loadBackupStats();
+  if (tabId === "gis") loadGisMap();
 }
 
 window.openRegistrationModal = async function() {
@@ -447,6 +454,7 @@ window.closeRegistrationModal = function() {
 window.refreshCurrentView = function() {
   if (state.currentTab === "dashboard") loadDashboardStats();
   if (state.currentTab === "families") loadFamiliesList();
+  if (state.currentTab === "gis") loadGisMap();
 };
 
 // --- Dashboard View ---
@@ -941,10 +949,17 @@ async function handleFamilyFormSubmit(e) {
     });
   }
 
+  const rawLat = parseFloat(document.getElementById("form-latitude")?.value);
+  const rawLng = parseFloat(document.getElementById("form-longitude")?.value);
+  const latVal = !isNaN(rawLat) ? rawLat : null;
+  const lngVal = !isNaN(rawLng) ? rawLng : null;
+
   const payload = {
     village_id: villageId,
     poor_category: poorCategory,
     address_note: addressNote,
+    latitude: latVal,
+    longitude: lngVal,
     status: "APPROVED",
     members: members
   };
@@ -995,6 +1010,15 @@ function resetRegistrationForm() {
   if (container) container.innerHTML = "";
   const addrEl = document.getElementById("form-address-note");
   if (addrEl) addrEl.value = "";
+  const latEl = document.getElementById("form-latitude");
+  if (latEl) latEl.value = "";
+  const lngEl = document.getElementById("form-longitude");
+  if (lngEl) lngEl.value = "";
+  const gpsFeedback = document.getElementById("gps-status-feedback");
+  if (gpsFeedback) {
+    gpsFeedback.textContent = "* ចុចលើប៊ូតុងខាងលើពេលចុះដល់ខ្នងផ្ទះ ដើម្បីចាប់យកទីតាំងស្វ័យប្រវត្តិ ឬវាយបញ្ចូលផ្ទាល់";
+    gpsFeedback.style.color = "var(--text-dim)";
+  }
   memberRowCount = 0;
   populateFormGeo();
   // Add initial Head of Family card
@@ -1255,11 +1279,14 @@ async function openFamilyDetailModal(familyId) {
         <div><span class="text-dim">លេខកូដគ្រួសារ៖</span> <br/><strong style="font-size: 1.1rem; color: #60a5fa;">${fam.family_code}</strong></div>
         <div><span class="text-dim">ប្រភេទគ្រួសារ៖</span> <br/><strong>${poorBadgeMap[fam.poor_category] || fam.poor_category}</strong></div>
         <div><span class="text-dim">ទីតាំងរដ្ឋបាល៖</span> <br/><strong>ភូមិ ${fam.village_name_kh || '-'}, ឃុំ ${fam.commune_name_kh || '-'}</strong></div>
-        <div><span class="text-dim">អាសយដ្ឋាន/ចំណាំ៖</span> <br/><strong>${fam.address_note || 'គ្មាន'}</strong></div>
+        <div><span class="text-dim">អាសយដ្ឋាន/GPS៖</span> <br/><strong>${fam.address_note || 'គ្មាន'} ${fam.latitude ? `<small style="display:block; color: #38bdf8; font-family: monospace;">(${fam.latitude}, ${fam.longitude})</small>` : ''}</strong></div>
         ${!fam.is_offline ? `
           <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; padding-top: 0.5rem; border-top: 1px dashed var(--border-color);">
             <button type="button" class="btn btn-sm btn-outline btn-open-edit-family" 
-              data-family-id="${fam.id}" data-family-code="${fam.family_code}" data-poor="${fam.poor_category}" data-address="${(fam.address_note || '').replace(/"/g, '&quot;')}">
+              data-family-id="${fam.id}" data-family-code="${fam.family_code}" data-poor="${fam.poor_category}" 
+              data-address="${(fam.address_note || '').replace(/"/g, '&quot;')}"
+              data-lat="${fam.latitude !== undefined && fam.latitude !== null ? fam.latitude : ''}"
+              data-lng="${fam.longitude !== undefined && fam.longitude !== null ? fam.longitude : ''}">
               <i class="fa-solid fa-pen-to-square"></i> កែសម្រួលព័ត៌មានគ្រួសារ
             </button>
           </div>
@@ -1343,7 +1370,9 @@ async function openFamilyDetailModal(familyId) {
         const fCode = btn.getAttribute("data-family-code");
         const fPoor = btn.getAttribute("data-poor");
         const fAddress = btn.getAttribute("data-address");
-        openEditFamilyModal(fId, fCode, fPoor, fAddress);
+        const fLat = btn.getAttribute("data-lat");
+        const fLng = btn.getAttribute("data-lng");
+        openEditFamilyModal(fId, fCode, fPoor, fAddress, fLat, fLng);
       });
     });
 
@@ -1386,8 +1415,11 @@ async function openFamilyDetailModal(familyId) {
   }
 }
 
+// Make openFamilyDetailModal globally accessible for GIS map popups
+window.openFamilyDetailModal = openFamilyDetailModal;
+
 // --- Family Details Edit Modal Management ---
-function openEditFamilyModal(familyId, familyCode, poorCategory, addressNote) {
+function openEditFamilyModal(familyId, familyCode, poorCategory, addressNote, lat, lng) {
   const modal = document.getElementById("edit-family-modal");
   if (!modal) return;
 
@@ -1395,6 +1427,8 @@ function openEditFamilyModal(familyId, familyCode, poorCategory, addressNote) {
   document.getElementById("edit-family-code-display").textContent = familyCode || "-";
   document.getElementById("edit-family-poor").value = poorCategory || "GENERAL";
   document.getElementById("edit-family-address").value = addressNote || "";
+  document.getElementById("edit-family-lat").value = (lat !== undefined && lat !== null) ? lat : "";
+  document.getElementById("edit-family-lng").value = (lng !== undefined && lng !== null) ? lng : "";
 
   modal.classList.add("active");
 }
@@ -1404,6 +1438,10 @@ async function handleEditFamilyFormSubmit(e) {
   const familyId = document.getElementById("edit-family-id")?.value;
   const poorCategory = document.getElementById("edit-family-poor")?.value;
   const addressNote = document.getElementById("edit-family-address")?.value.trim();
+  const rawLat = parseFloat(document.getElementById("edit-family-lat")?.value);
+  const rawLng = parseFloat(document.getElementById("edit-family-lng")?.value);
+  const lat = !isNaN(rawLat) ? rawLat : null;
+  const lng = !isNaN(rawLng) ? rawLng : null;
 
   if (!familyId) return;
 
@@ -1418,7 +1456,9 @@ async function handleEditFamilyFormSubmit(e) {
       method: "PUT",
       body: JSON.stringify({
         poor_category: poorCategory,
-        address_note: addressNote
+        address_note: addressNote,
+        latitude: lat,
+        longitude: lng
       })
     });
 
@@ -2331,6 +2371,7 @@ function updateUserPillUI() {
   const navReports = document.getElementById("nav-item-reports");
   const navUsers = document.getElementById("nav-item-users");
   const navBackup = document.getElementById("nav-item-backup");
+  const navGis = document.getElementById("nav-item-gis");
 
   if (user) {
     if (sidebarAvatar) {
@@ -2345,8 +2386,8 @@ function updateUserPillUI() {
     }
 
     if (user.role === "ADMIN") {
-      // ADMIN: Show all 7 navigation tabs
-      if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៧`;
+      // ADMIN: Show all 8 navigation tabs
+      if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៨`;
       if (navDashboard) navDashboard.style.display = "flex";
       if (navRegistration) navRegistration.style.display = "flex";
       if (navFamilies) navFamilies.style.display = "flex";
@@ -2354,8 +2395,9 @@ function updateUserPillUI() {
       if (navReports) navReports.style.display = "flex";
       if (navUsers) navUsers.style.display = "flex";
       if (navBackup) navBackup.style.display = "flex";
+      if (navGis) navGis.style.display = "flex";
     } else {
-      // COLLECTOR (អ្នកស្រង់ទិន្នន័យ): Show 'ចុះឈ្មោះគ្រួសារ' and 'បញ្ជីគ្រួសារ និងពិនិត្យ'
+      // COLLECTOR: Show 'ចុះឈ្មោះគ្រួសារ', 'បញ្ជីគ្រួសារ និងពិនិត្យ', and 'ផែនទីភូមិសាស្ត្រ GIS'
       if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-user-pen"></i> មុខងារអ្នកស្រង់ទិន្នន័យ (Collector)`;
       if (navDashboard) navDashboard.style.display = "none";
       if (navRegistration) navRegistration.style.display = "flex";
@@ -2364,15 +2406,16 @@ function updateUserPillUI() {
       if (navReports) navReports.style.display = "none";
       if (navUsers) navUsers.style.display = "none";
       if (navBackup) navBackup.style.display = "none";
+      if (navGis) navGis.style.display = "flex";
 
-      if (state.currentTab !== "registration" && state.currentTab !== "families") {
+      if (state.currentTab !== "registration" && state.currentTab !== "families" && state.currentTab !== "gis") {
         switchTab("registration");
       }
     }
   } else {
     if (sidebarAvatar) sidebarAvatar.innerHTML = `<i class="fa-solid fa-user"></i>`;
     if (sidebarUsername) sidebarUsername.textContent = "មិនទាន់ចូលប្រើ (Guest)";
-    if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៧`;
+    if (menuTitle) menuTitle.innerHTML = `<i class="fa-solid fa-layer-group"></i> មុខងារចម្បងទាំង ៨`;
     if (navDashboard) navDashboard.style.display = "flex";
     if (navRegistration) navRegistration.style.display = "flex";
     if (navFamilies) navFamilies.style.display = "flex";
@@ -2380,6 +2423,7 @@ function updateUserPillUI() {
     if (navReports) navReports.style.display = "flex";
     if (navUsers) navUsers.style.display = "none";
     if (navBackup) navBackup.style.display = "none";
+    if (navGis) navGis.style.display = "flex";
   }
 }
 
@@ -2432,6 +2476,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Setup Family Form Submit
   document.getElementById("form-register-family")?.addEventListener("submit", handleFamilyFormSubmit);
+
+  // Setup GPS Capture Buttons
+  document.getElementById("btn-get-current-gps")?.addEventListener("click", () => {
+    captureGpsPosition("form-latitude", "form-longitude", "gps-status-feedback");
+  });
+  document.getElementById("btn-get-current-gps-edit")?.addEventListener("click", () => {
+    captureGpsPosition("edit-family-lat", "edit-family-lng", "gps-status-feedback-edit");
+  });
 
   // Setup Sync Button
   document.getElementById("btn-manual-sync")?.addEventListener("click", () => {
@@ -2804,4 +2856,301 @@ function setupBackupRestoreUI() {
       btnRestore.innerHTML = origHtml;
     }
   });
+}
+
+// --- GIS & Technology (Interactive Leaflet Map & Poverty Visualization) ---
+let gisMapInstance = null;
+let gisLayerGroup = null;
+let gisDensityLayerGroup = null;
+let gisCurrentMode = "pins";
+
+function captureGpsPosition(latInputId, lngInputId, feedbackId) {
+  const latInput = document.getElementById(latInputId);
+  const lngInput = document.getElementById(lngInputId);
+  const feedback = document.getElementById(feedbackId);
+
+  if (!navigator.geolocation) {
+    window.showToast("ឧបករណ៍របស់លោកអ្នកមិនគាំទ្រ Geolocation ទេ", "error");
+    if (feedback) feedback.textContent = "ឧបករណ៍មិនគាំទ្រ GPS ទេ";
+    return;
+  }
+
+  if (feedback) {
+    feedback.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> កំពុងស្វែងរកសញ្ញា GPS ផ្កាយរណប...`;
+    feedback.style.color = "#38bdf8";
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const acc = Math.round(position.coords.accuracy);
+
+      if (latInput) latInput.value = lat.toFixed(6);
+      if (lngInput) lngInput.value = lng.toFixed(6);
+
+      if (feedback) {
+        feedback.innerHTML = `<span style="color: #34d399;"><i class="fa-solid fa-circle-check"></i> បានចាប់យក GPS ជោគជ័យ (កម្រិតលម្អិត ±${acc} ម៉ែត្រ)</span>`;
+      }
+      window.showToast(`បានចាប់ទីតាំង GPS ដោយជោគជ័យ (±${acc}m)`, "success");
+    },
+    (err) => {
+      console.warn("Geolocation error:", err);
+      let errMsg = "មិនអាចទាញយក GPS បានទេ";
+      if (err.code === 1) errMsg = "សូមអនុញ្ញាតសិទ្ធិប្រើប្រាស់ទីតាំង (Location Permission) ក្នុង Browser";
+      else if (err.code === 2) errMsg = "បាត់សញ្ញា GPS មិនអាចកំណត់ទីតាំងបាន";
+      else if (err.code === 3) errMsg = "ការចាប់សញ្ញា GPS ហួសពេលកំណត់ (Timeout)";
+
+      if (feedback) {
+        feedback.innerHTML = `<span style="color: #f87171;"><i class="fa-solid fa-triangle-exclamation"></i> ${errMsg}</span>`;
+      }
+      window.showToast(errMsg, "error");
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+async function loadGisMap() {
+  const mapContainer = document.getElementById("gis-map");
+  if (!mapContainer) return;
+
+  // Initialize Leaflet Map once
+  if (!gisMapInstance && typeof L !== "undefined") {
+    gisMapInstance = L.map("gis-map", {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([13.5852, 103.7125], 14);
+
+    // Standard OpenStreetMap Tile Layer
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'
+    }).addTo(gisMapInstance);
+
+    gisLayerGroup = L.layerGroup().addTo(gisMapInstance);
+    gisDensityLayerGroup = L.layerGroup();
+
+    // Controls setup
+    document.getElementById("gis-filter-village")?.addEventListener("change", () => fetchAndRenderGisData());
+    document.getElementById("gis-filter-poor")?.addEventListener("change", () => fetchAndRenderGisData());
+    
+    let searchDebounce = null;
+    document.getElementById("gis-filter-search")?.addEventListener("input", () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => fetchAndRenderGisData(), 300);
+    });
+
+    document.getElementById("btn-gis-mode-pins")?.addEventListener("click", () => {
+      setGisMode("pins");
+    });
+    document.getElementById("btn-gis-mode-heatmap")?.addEventListener("click", () => {
+      setGisMode("heatmap");
+    });
+
+    document.getElementById("btn-gis-recenter")?.addEventListener("click", () => {
+      if (state.gisData && state.gisData.center) {
+        gisMapInstance.setView([state.gisData.center.latitude, state.gisData.center.longitude], state.gisData.center.zoom || 14, { animate: true });
+      } else {
+        gisMapInstance.setView([13.5852, 103.7125], 14, { animate: true });
+      }
+    });
+
+    document.getElementById("btn-gis-refresh")?.addEventListener("click", () => {
+      fetchAndRenderGisData();
+    });
+  }
+
+  // Handle map resize when tab is switched
+  setTimeout(() => {
+    if (gisMapInstance) gisMapInstance.invalidateSize();
+  }, 200);
+
+  await fetchAndRenderGisData();
+}
+
+function setGisMode(mode) {
+  gisCurrentMode = mode;
+  const btnPins = document.getElementById("btn-gis-mode-pins");
+  const btnHeat = document.getElementById("btn-gis-mode-heatmap");
+
+  if (!gisMapInstance) return;
+
+  if (mode === "pins") {
+    if (btnPins) { btnPins.className = "btn btn-sm btn-primary"; }
+    if (btnHeat) { btnHeat.className = "btn btn-sm btn-outline"; }
+    if (gisDensityLayerGroup) gisMapInstance.removeLayer(gisDensityLayerGroup);
+    if (gisLayerGroup) gisMapInstance.addLayer(gisLayerGroup);
+  } else {
+    if (btnPins) { btnPins.className = "btn btn-sm btn-outline"; }
+    if (btnHeat) { btnHeat.className = "btn btn-sm btn-primary"; }
+    if (gisLayerGroup) gisMapInstance.removeLayer(gisLayerGroup);
+    if (gisDensityLayerGroup) gisMapInstance.addLayer(gisDensityLayerGroup);
+  }
+}
+
+async function fetchAndRenderGisData() {
+  if (typeof L === "undefined") {
+    console.warn("Leaflet library not yet loaded");
+    return;
+  }
+
+  const villageSelect = document.getElementById("gis-filter-village");
+  const poorSelect = document.getElementById("gis-filter-poor");
+  const searchInput = document.getElementById("gis-filter-search");
+
+  const vId = villageSelect?.value || "";
+  const poor = poorSelect?.value || "";
+  const query = searchInput?.value.trim() || "";
+
+  const params = new URLSearchParams();
+  if (vId) params.append("village_id", vId);
+  if (poor) params.append("poor_category", poor);
+  if (query) params.append("search", query);
+
+  try {
+    const res = await apiRequest(`/api/gis/map-data?${params.toString()}`);
+    if (!res.ok) throw new Error("មិនអាចទាញយកទិន្នន័យ GIS បានទេ");
+    const data = await res.json();
+    state.gisData = data;
+
+    // Update KPI cards
+    const summary = data.summary || {};
+    const total = summary.total_households || 0;
+    const elTotal = document.getElementById("gis-stat-total");
+    const elP1 = document.getElementById("gis-stat-poor1");
+    const elP2 = document.getElementById("gis-stat-poor2");
+    const elGen = document.getElementById("gis-stat-general");
+    const elPop = document.getElementById("gis-stat-pop");
+
+    if (elTotal) elTotal.textContent = toKhmerDigits(total);
+    if (elP1) elP1.textContent = toKhmerDigits(summary.idpoor_1_count || 0);
+    if (elP2) elP2.textContent = toKhmerDigits(summary.idpoor_2_count || 0);
+    if (elGen) elGen.textContent = toKhmerDigits(summary.general_count || 0);
+    if (elPop) elPop.textContent = toKhmerDigits(summary.total_population || 0);
+
+    const p1Pct = total ? Math.round(((summary.idpoor_1_count || 0) / total) * 100) : 0;
+    const p2Pct = total ? Math.round(((summary.idpoor_2_count || 0) / total) * 100) : 0;
+    const genPct = total ? Math.round(((summary.general_count || 0) / total) * 100) : 0;
+
+    const elP1Pct = document.getElementById("gis-stat-poor1-pct");
+    const elP2Pct = document.getElementById("gis-stat-poor2-pct");
+    const elGenPct = document.getElementById("gis-stat-general-pct");
+
+    if (elP1Pct) elP1Pct.textContent = `${toKhmerDigits(p1Pct)}% នៃគ្រួសារសរុប`;
+    if (elP2Pct) elP2Pct.textContent = `${toKhmerDigits(p2Pct)}% នៃគ្រួសារសរុប`;
+    if (elGenPct) elGenPct.textContent = `${toKhmerDigits(genPct)}% នៃគ្រួសារសរុប`;
+
+    // Populate Village filter if empty
+    if (villageSelect && villageSelect.children.length <= 1 && data.villages) {
+      data.villages.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v.id;
+        opt.textContent = `${v.name_kh} (${v.code})`;
+        villageSelect.appendChild(opt);
+      });
+    }
+
+    // Clear existing markers
+    if (gisLayerGroup) gisLayerGroup.clearLayers();
+    if (gisDensityLayerGroup) gisDensityLayerGroup.clearLayers();
+
+    // Render Villages Centers
+    (data.villages || []).forEach(v => {
+      if (v.latitude && v.longitude) {
+        const adminIcon = L.divIcon({
+          className: "custom-gis-pin pin-admin",
+          html: '<i class="fa-solid fa-landmark"></i>',
+          iconSize: [28, 28],
+          iconAnchor: [14, 14]
+        });
+        const adminMarker = L.marker([v.latitude, v.longitude], { icon: adminIcon });
+        adminMarker.bindPopup(`
+          <div class="gis-popup-header">
+            <span class="gis-popup-code" style="color: #34d399;">សាលាឃុំ/មជ្ឈមណ្ឌលភូមិ</span>
+            <span class="badge-tag approved" style="font-size: 0.68rem;">រដ្ឋបាល</span>
+          </div>
+          <div class="gis-popup-body">
+            <div><strong>${v.name_kh}</strong> (${v.code})</div>
+            <div class="text-dim">ឃុំ ${v.commune_name_kh || '-'}, ស្រុក ${v.district_name_kh || '-'}</div>
+          </div>
+        `);
+        gisLayerGroup.addLayer(adminMarker);
+      }
+    });
+
+    // Render Households
+    const households = data.households || [];
+    households.forEach(h => {
+      if (!h.latitude || !h.longitude) return;
+
+      const poorClass = h.poor_category === "IDPOOR_1" ? "pin-poor1" : (h.poor_category === "IDPOOR_2" ? "pin-poor2" : "pin-general");
+      const iconSymbol = h.poor_category === "IDPOOR_1" ? '<i class="fa-solid fa-1"></i>' : (h.poor_category === "IDPOOR_2" ? '<i class="fa-solid fa-2"></i>' : '<i class="fa-solid fa-house"></i>');
+      const poorLabel = h.poor_category === "IDPOOR_1" ? "ក្រ១ (ក្រីក្រខ្លាំង)" : (h.poor_category === "IDPOOR_2" ? "ក្រ២ (ក្រីក្រមធ្យម)" : "ទូទៅ");
+      const poorBadge = h.poor_category === "IDPOOR_1" ? "poor1" : (h.poor_category === "IDPOOR_2" ? "poor2" : "general");
+
+      // 1. Marker Pin Layer
+      const pinIcon = L.divIcon({
+        className: `custom-gis-pin ${poorClass}`,
+        html: iconSymbol,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      const marker = L.marker([h.latitude, h.longitude], { icon: pinIcon });
+      const popupHtml = `
+        <div class="gis-popup-header">
+          <span class="gis-popup-code">${h.family_code}</span>
+          <span class="badge-tag ${poorBadge}">${poorLabel}</span>
+        </div>
+        <div class="gis-popup-body">
+          <div class="gis-popup-row">
+            <span class="text-dim">មេគ្រួសារ៖</span>
+            <strong>${h.head_name}</strong>
+          </div>
+          <div class="gis-popup-row">
+            <span class="text-dim">សមាជិក៖</span>
+            <span><strong>${toKhmerDigits(h.members_count)}</strong> នាក់ (កុមារ៖ ${toKhmerDigits(h.children_count)}, ចាស់៖ ${toKhmerDigits(h.elders_count)})</span>
+          </div>
+          <div class="gis-popup-row">
+            <span class="text-dim">ទីតាំង៖</span>
+            <span>ភូមិ ${h.village_name_kh}</span>
+          </div>
+          <div class="gis-popup-row">
+            <span class="text-dim">ចំណាំ៖</span>
+            <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${h.address_note}</span>
+          </div>
+          <div class="gis-popup-row" style="font-size: 0.72rem; color: var(--text-dim); margin-top: 2px;">
+            <span>GPS: ${h.latitude}, ${h.longitude}</span>
+          </div>
+          <button type="button" class="gis-popup-btn" onclick="window.openFamilyDetailModal(${h.id})">
+            <i class="fa-solid fa-users"></i> មើលសមាជិកគ្រួសារលម្អិត
+          </button>
+        </div>
+      `;
+      marker.bindPopup(popupHtml);
+      gisLayerGroup.addLayer(marker);
+
+      // 2. Density / Hotspot Layer
+      const circleColor = h.poor_category === "IDPOOR_1" ? "#ef4444" : (h.poor_category === "IDPOOR_2" ? "#f59e0b" : "#3b82f6");
+      const radius = h.poor_category === "IDPOOR_1" ? 50 : (h.poor_category === "IDPOOR_2" ? 38 : 28);
+      const circle = L.circle([h.latitude, h.longitude], {
+        color: circleColor,
+        fillColor: circleColor,
+        fillOpacity: 0.35,
+        radius: radius,
+        weight: 1
+      });
+      circle.bindPopup(popupHtml);
+      gisDensityLayerGroup.addLayer(circle);
+    });
+
+    // Recenter map if first load or filtering
+    if (data.center && households.length > 0 && gisMapInstance) {
+      gisMapInstance.setView([data.center.latitude, data.center.longitude], data.center.zoom || 14);
+    }
+
+  } catch (err) {
+    console.error("GIS load error:", err);
+    window.showToast("មានបញ្ហាក្នុងការទាញយកទិន្នន័យផែនទី GIS", "error");
+  }
 }
