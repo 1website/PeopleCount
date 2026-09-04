@@ -26,7 +26,7 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=3.4")
+    navigator.serviceWorker.register("/static/sw.js?v=3.7")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
@@ -2716,52 +2716,40 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("btn-topbar-logout")?.addEventListener("click", handleSystemLogout);
   document.getElementById("btn-sidebar-logout")?.addEventListener("click", handleSystemLogout);
 
-  // Start sequence
-  setupGeoCascade();
-  await loadGeographicHierarchy();
-  await checkAuthSession();
-  await window.syncManager.updateUI();
-
-  // Initialize first member row in form
-  resetRegistrationForm();
-
-  // Sidebar Toggle (Desktop Collapse & Mobile Drawer)
+  // 1. Synchronous Immediate UI Initialization
   const appLayout = document.querySelector(".app-layout");
   const appSidebar = document.getElementById("app-sidebar");
   const btnSidebarToggle = document.getElementById("btn-sidebar-toggle");
 
-  // Restore saved desktop sidebar preference
   if (window.innerWidth > 1024 && localStorage.getItem("sidebar_collapsed") === "true") {
     appLayout?.classList.add("sidebar-collapsed");
   }
 
   btnSidebarToggle?.addEventListener("click", () => {
     if (window.innerWidth <= 1024) {
-      // Mobile Drawer Toggle
       appSidebar?.classList.toggle("open");
     } else {
-      // Desktop Collapse/Expand Toggle
       const isCollapsed = appLayout?.classList.toggle("sidebar-collapsed");
       localStorage.setItem("sidebar_collapsed", isCollapsed ? "true" : "false");
     }
   });
 
-  // Display Current Date in Khmer in Topbar
   const dateEl = document.getElementById("current-date-text");
   if (dateEl) {
     dateEl.textContent = formatKhmerFullDate(new Date());
   }
 
-  // Setup User Avatar Upload listeners
   setupUserAvatarUI();
-
-  // Setup Backup & Restore handlers
   setupBackupRestoreUI();
+  resetRegistrationForm();
 
-  // Load Dashboard by default
-  loadDashboardStats();
-  // Preload Families List in background so tab 3 renders immediately
-  loadFamiliesList();
+  // 2. Safe Asynchronous Startup Sequence
+  try { setupGeoCascade(); } catch (e) { console.error("setupGeoCascade err:", e); }
+  try { await loadGeographicHierarchy(); } catch (e) { console.error("loadGeographicHierarchy err:", e); }
+  try { await checkAuthSession(); } catch (e) { console.error("checkAuthSession err:", e); }
+  try { if (window.syncManager) await window.syncManager.updateUI(); } catch (e) { console.error("syncManager err:", e); }
+  try { loadDashboardStats(); } catch (e) { console.error("loadDashboardStats err:", e); }
+  try { loadFamiliesList(); } catch (e) { console.error("loadFamiliesList err:", e); }
 });
 
 // --- Database Backup & Restore Module ---
@@ -3061,6 +3049,7 @@ function setGisMode(mode) {
     if (btnHeat) { btnHeat.className = "btn btn-sm btn-primary"; }
     if (gisLayerGroup) gisMapInstance.removeLayer(gisLayerGroup);
     if (gisDensityLayerGroup) gisMapInstance.addLayer(gisDensityLayerGroup);
+  }
 }
 
 function renderGisSummaryCards(summary) {
