@@ -782,45 +782,59 @@
         <!-- 8. GIS & TECHNOLOGY TAB -->
         <section id="view-gis" class="view-section">
           <!-- Top KPI Metrics -->
-          <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 1rem;">
-            <div class="stat-card" style="border-left: 4px solid #3b82f6;">
-              <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa;"><i class="fa-solid fa-house-chimney"></i></div>
-              <div class="stat-info">
-                <span class="stat-label">ខ្នងផ្ទះលើផែនទីសរុប</span>
-                <h3 class="stat-val" id="gis-stat-total">0</h3>
-                <span class="stat-sub text-dim">គ្រួសារមានទីតាំង</span>
+          <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+            <div class="card kpi-card blue" style="padding: 0.95rem 1.15rem;">
+              <div class="kpi-header" style="margin-bottom: 0.35rem;">
+                <span class="kpi-title" style="font-size: 0.82rem;">ខ្នងផ្ទះលើផែនទីសរុប</span>
+                <div class="kpi-icon" style="width: 32px; height: 32px; font-size: 0.95rem;"><i class="fa-solid fa-house-chimney"></i></div>
+              </div>
+              <div id="gis-stat-total" class="kpi-value" style="font-size: 1.5rem; margin-bottom: 0.2rem;">0</div>
+              <div class="kpi-sub" style="font-size: 0.72rem;">
+                <span>គ្រួសារមានទីតាំង GPS</span>
               </div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #ef4444;">
-              <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #f87171;"><i class="fa-solid fa-hand-holding-heart"></i></div>
-              <div class="stat-info">
-                <span class="stat-label">ក្រ១ (IDPoor 1)</span>
-                <h3 class="stat-val" id="gis-stat-poor1" style="color: #f87171;">0</h3>
-                <span class="stat-sub" id="gis-stat-poor1-pct" style="color: #fca5a5;">0% នៃគ្រួសារសរុប</span>
+
+            <div class="card kpi-card rose" style="padding: 0.95rem 1.15rem;">
+              <div class="kpi-header" style="margin-bottom: 0.35rem;">
+                <span class="kpi-title" style="font-size: 0.82rem;">ក្រ១ (IDPoor 1)</span>
+                <div class="kpi-icon" style="width: 32px; height: 32px; font-size: 0.95rem; background: rgba(239, 68, 68, 0.15); color: #f87171;"><i class="fa-solid fa-hand-holding-heart"></i></div>
+              </div>
+              <div id="gis-stat-poor1" class="kpi-value" style="font-size: 1.5rem; margin-bottom: 0.2rem; color: #f87171;">0</div>
+              <div class="kpi-sub" style="font-size: 0.72rem;">
+                <span id="gis-stat-poor1-pct" style="color: #fca5a5;">0% នៃគ្រួសារសរុប</span>
               </div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #f59e0b;">
-              <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;"><i class="fa-solid fa-shield-heart"></i></div>
-              <div class="stat-info">
-                <span class="stat-label">ក្រ២ (IDPoor 2)</span>
-                <h3 class="stat-val" id="gis-stat-poor2" style="color: #fbbf24;">0</h3>
-                <span class="stat-sub" id="gis-stat-poor2-pct" style="color: #fcd34d;">0% នៃគ្រួសារសរុប</span>
+
+            <div class="card kpi-card gold" style="padding: 0.95rem 1.15rem;">
+              <div class="kpi-header" style="margin-bottom: 0.35rem;">
+                <span class="kpi-title" style="font-size: 0.82rem;">ក្រ២ (IDPoor 2)</span>
+                <div class="kpi-icon" style="width: 32px; height: 32px; font-size: 0.95rem; background: rgba(245, 158, 11, 0.15); color: #fbbf24;"><i class="fa-solid fa-shield-heart"></i></div>
+              </div>
+              <div id="gis-stat-poor2" class="kpi-value" style="font-size: 1.5rem; margin-bottom: 0.2rem; color: #fbbf24;">0</div>
+              <div class="kpi-sub" style="font-size: 0.72rem;">
+                <span id="gis-stat-poor2-pct" style="color: #fcd34d;">0% នៃគ្រួសារសរុប</span>
               </div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #10b981;">
-              <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #34d399;"><i class="fa-solid fa-people-roof"></i></div>
-              <div class="stat-info">
-                <span class="stat-label">គ្រួសារទូទៅ (General)</span>
-                <h3 class="stat-val" id="gis-stat-general" style="color: #34d399;">0</h3>
-                <span class="stat-sub" id="gis-stat-general-pct" style="color: #6ee7b7;">0% នៃគ្រួសារសរុប</span>
+
+            <div class="card kpi-card green" style="padding: 0.95rem 1.15rem;">
+              <div class="kpi-header" style="margin-bottom: 0.35rem;">
+                <span class="kpi-title" style="font-size: 0.82rem;">គ្រួសារទូទៅ (General)</span>
+                <div class="kpi-icon" style="width: 32px; height: 32px; font-size: 0.95rem; background: rgba(16, 185, 129, 0.15); color: #34d399;"><i class="fa-solid fa-people-roof"></i></div>
+              </div>
+              <div id="gis-stat-general" class="kpi-value" style="font-size: 1.5rem; margin-bottom: 0.2rem; color: #34d399;">0</div>
+              <div class="kpi-sub" style="font-size: 0.72rem;">
+                <span id="gis-stat-general-pct" style="color: #6ee7b7;">0% នៃគ្រួសារសរុប</span>
               </div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #a855f7;">
-              <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;"><i class="fa-solid fa-users"></i></div>
-              <div class="stat-info">
-                <span class="stat-label">ប្រជាជនរស់នៅសរុប</span>
-                <h3 class="stat-val" id="gis-stat-pop" style="color: #c084fc;">0</h3>
-                <span class="stat-sub text-dim">នាក់ក្នុងតំបន់</span>
+
+            <div class="card kpi-card purple" style="padding: 0.95rem 1.15rem;">
+              <div class="kpi-header" style="margin-bottom: 0.35rem;">
+                <span class="kpi-title" style="font-size: 0.82rem;">ប្រជាជនរស់នៅសរុប</span>
+                <div class="kpi-icon" style="width: 32px; height: 32px; font-size: 0.95rem; background: rgba(168, 85, 247, 0.15); color: #c084fc;"><i class="fa-solid fa-users"></i></div>
+              </div>
+              <div id="gis-stat-pop" class="kpi-value" style="font-size: 1.5rem; margin-bottom: 0.2rem; color: #c084fc;">0</div>
+              <div class="kpi-sub" style="font-size: 0.72rem;">
+                <span>នាក់ក្នុងតំបន់ផែនទី</span>
               </div>
             </div>
           </div>

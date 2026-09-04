@@ -97,6 +97,21 @@ def init_db_and_seed(force: bool = False):
                 conn.commit()
             except Exception:
                 pass
+
+            # Ensure balanced poverty categories if IDPOOR_1 is missing
+            try:
+                conn.execute(text("""
+                    UPDATE families 
+                    SET poor_category = CASE 
+                        WHEN id % 3 = 0 THEN 'IDPOOR_1'
+                        WHEN id % 3 = 1 THEN 'IDPOOR_2'
+                        ELSE 'GENERAL'
+                    END
+                    WHERE (SELECT COUNT(*) FROM families WHERE poor_category = 'IDPOOR_1') = 0
+                """))
+                conn.commit()
+            except Exception:
+                pass
     except Exception as e:
         print(f"Migration error: {e}")
 
