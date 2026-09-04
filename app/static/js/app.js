@@ -26,7 +26,7 @@ const state = {
 // Register Service Worker for PWA
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js?v=3.7")
+    navigator.serviceWorker.register("/static/sw.js?v=4.0")
       .then(reg => {
         console.log("[PWA] Service Worker registered:", reg.scope);
         reg.update();
@@ -2830,13 +2830,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   setupBackupRestoreUI();
   resetRegistrationForm();
 
-  // 2. Safe Asynchronous Startup Sequence
+  // 2. Immediate Synchronous Hydration from Server Preload (0ms latency, zero blocking)
+  if (window.__PRELOADED_STATS__) {
+    try { renderDashboard(window.__PRELOADED_STATS__); } catch (e) { console.error("renderDashboard preload err:", e); }
+  }
+  if (window.__PRELOADED_FAMILIES__ && window.__PRELOADED_FAMILIES__.length > 0) {
+    try {
+      state.familiesList = window.__PRELOADED_FAMILIES__;
+      renderFamiliesTable(state.familiesList);
+    } catch (e) { console.error("renderFamiliesTable preload err:", e); }
+  }
+
+  // 3. Safe Asynchronous Startup Sequence (Non-blocking concurrent execution)
   try { setupGeoCascade(); } catch (e) { console.error("setupGeoCascade err:", e); }
-  try { await loadGeographicHierarchy(); } catch (e) { console.error("loadGeographicHierarchy err:", e); }
-  try { await checkAuthSession(); } catch (e) { console.error("checkAuthSession err:", e); }
-  try { if (window.syncManager) await window.syncManager.updateUI(); } catch (e) { console.error("syncManager err:", e); }
-  try { loadDashboardStats(); } catch (e) { console.error("loadDashboardStats err:", e); }
-  try { loadFamiliesList(); } catch (e) { console.error("loadFamiliesList err:", e); }
+  loadDashboardStats().catch(e => console.error("loadDashboardStats err:", e));
+  loadFamiliesList().catch(e => console.error("loadFamiliesList err:", e));
+  loadGeographicHierarchy().catch(e => console.error("loadGeographicHierarchy err:", e));
+  checkAuthSession().catch(e => console.error("checkAuthSession err:", e));
+  if (window.syncManager) window.syncManager.updateUI().catch(e => console.error("syncManager err:", e));
 });
 
 // --- Database Backup & Restore Module ---

@@ -90,6 +90,138 @@ async def serve_sw():
     return HTMLResponse(content="", status_code=404)
 
 
+def render_ssr_page(content: str, fams: list, stats: dict) -> str:
+    import json
+    import re
+
+    # 1. Inject JSON preloaded data
+    fams_json = json.dumps(fams, default=str).replace("</script>", "<\\/script>")
+    stats_json = json.dumps(stats, default=str).replace("</script>", "<\\/script>")
+    preload_tag = (
+        f'<script id="server-preloaded-data">\n'
+        f'  window.__PRELOADED_FAMILIES__ = {fams_json};\n'
+        f'  window.__PRELOADED_STATS__ = {stats_json};\n'
+        f'</script>\n'
+    )
+    if "</head>" in content:
+        content = content.replace("</head>", f"{preload_tag}</head>", 1)
+
+    # 2. Extract stats metrics
+    fam_obj = stats.get("families", {})
+    pop_obj = stats.get("demographics", {})
+    bc_obj = stats.get("birth_certificate", {})
+    edu_obj = stats.get("education", {})
+
+    total_fam = str(fam_obj.get("total", 0))
+    poor1 = str(fam_obj.get("poor_1", 0))
+    poor2 = str(fam_obj.get("poor_2", 0))
+    general = str(fam_obj.get("general", 0))
+
+    pop_total = str(pop_obj.get("total_population", 0))
+    female = str(pop_obj.get("female", 0))
+    male = str(pop_obj.get("male", 0))
+    female_pct = str(pop_obj.get("female_percentage", 0))
+
+    bc_pct = str(bc_obj.get("percentage_have", 0))
+    bc_have = str(bc_obj.get("have", 0))
+    bc_none = str(bc_obj.get("none", 0))
+
+    school_age = str(edu_obj.get("total_school_age", 0))
+    infants0 = str(edu_obj.get("infants_0", 0))
+    drop_cnt = str(edu_obj.get("dropouts_count", 0))
+    drop_rate = str(edu_obj.get("dropout_rate_percent", 0))
+
+    # 3. Replace Static Placeholders in Metric Cards
+    content = content.replace('<div id="kpi-families-total" class="kpi-value">0</div>', f'<div id="kpi-families-total" class="kpi-value">{total_fam}</div>')
+    content = content.replace('<strong id="kpi-poor1-count" style="color: #f87171;">0</strong>', f'<strong id="kpi-poor1-count" style="color: #f87171;">{poor1}</strong>')
+    content = content.replace('<strong id="kpi-poor2-count" style="color: #fbbf24;">0</strong>', f'<strong id="kpi-poor2-count" style="color: #fbbf24;">{poor2}</strong>')
+    content = content.replace('<strong id="kpi-general-count" style="color: #93c5fd;">0</strong>', f'<strong id="kpi-general-count" style="color: #93c5fd;">{general}</strong>')
+
+    content = content.replace('<div id="kpi-pop-total" class="kpi-value">0</div>', f'<div id="kpi-pop-total" class="kpi-value">{pop_total}</div>')
+    content = content.replace('<strong id="kpi-female-count" style="color: #f472b6;">0</strong>', f'<strong id="kpi-female-count" style="color: #f472b6;">{female}</strong>')
+    content = content.replace('<span id="kpi-female-pct">0%</span>', f'<span id="kpi-female-pct">{female_pct}%</span>')
+    content = content.replace('<strong id="kpi-male-count" style="color: #60a5fa;">0</strong>', f'<strong id="kpi-male-count" style="color: #60a5fa;">{male}</strong>')
+
+    content = content.replace('<div id="kpi-birthcert-pct" class="kpi-value">0%</div>', f'<div id="kpi-birthcert-pct" class="kpi-value">{bc_pct}%</div>')
+    content = content.replace('<strong id="kpi-birthcert-have" style="color: #34d399;">0</strong>', f'<strong id="kpi-birthcert-have" style="color: #34d399;">{bc_have}</strong>')
+    content = content.replace('<strong id="kpi-birthcert-none" style="color: #fb7185;">0</strong>', f'<strong id="kpi-birthcert-none" style="color: #fb7185;">{bc_none}</strong>')
+
+    content = content.replace('<div id="kpi-school-age" class="kpi-value">0</div>', f'<div id="kpi-school-age" class="kpi-value">{school_age}</div>')
+    content = content.replace('<strong id="kpi-infants-0" style="color: #38bdf8;">0</strong>', f'<strong id="kpi-infants-0" style="color: #38bdf8;">{infants0}</strong>')
+    content = content.replace('<strong id="kpi-school-age-sub" style="color: #a78bfa;">0</strong>', f'<strong id="kpi-school-age-sub" style="color: #a78bfa;">{school_age}</strong>')
+
+    content = content.replace('<div id="kpi-dropout-rate" class="kpi-value">0%</div>', f'<div id="kpi-dropout-rate" class="kpi-value">{drop_rate}%</div>')
+    content = content.replace('<strong id="kpi-dropouts-count" style="color: #fb7185;">0</strong>', f'<strong id="kpi-dropouts-count" style="color: #fb7185;">{drop_cnt}</strong>')
+
+    # 4. Inject Education Breakdown Rows
+    edu_rows = f"""
+      <tr style="background: rgba(56, 189, 248, 0.08); border-left: 3px solid #38bdf8;">
+        <td><i class="fa-solid fa-baby" style="color: #38bdf8; margin-right: 6px;"></i><strong style="color: #7dd3fc;">ទារក/កុមារអាយុ ០ ឆ្នាំ (អាយុក្រោម ១ ឆ្នាំ)</strong></td>
+        <td class="text-right"><strong style="color: #38bdf8; font-size: 1.05rem;">{edu_obj.get("infants_0", 0)}</strong> នាក់</td>
+      </tr>
+      <tr><td>កុមារតូច (១-២ ឆ្នាំ)</td><td class="text-right"><strong>{edu_obj.get("toddlers_1_2", 0)}</strong> នាក់</td></tr>
+      <tr><td>កុមារតូច (៣-៥ ឆ្នាំ)</td><td class="text-right"><strong>{edu_obj.get("kindergarten_3_5", 0)}</strong> នាក់</td></tr>
+      <tr><td>កម្រិតបឋមសិក្សា (៦-១១ ឆ្នាំ)</td><td class="text-right"><strong>{edu_obj.get("primary_6_11", 0)}</strong> នាក់</td></tr>
+      <tr><td>កម្រិតអនុវិទ្យាល័យ (១២-១៤ ឆ្នាំ)</td><td class="text-right"><strong>{edu_obj.get("lower_sec_12_14", 0)}</strong> នាក់</td></tr>
+      <tr><td>កម្រិតវិទ្យាល័យ (១៥-១៧ ឆ្នាំ)</td><td class="text-right"><strong>{edu_obj.get("upper_sec_15_17", 0)}</strong> នាក់</td></tr>
+      <tr style="border-top: 1px solid var(--border-color);"><td><strong>កុមារសរុបដល់វ័យសិក្សា (៦-១៧ ឆ្នាំ)</strong></td><td class="text-right"><strong>{edu_obj.get("total_school_age", 0)}</strong> នាក់</td></tr>
+      <tr style="border-top: 2px solid var(--border-color); color: var(--gold-light); background: rgba(245, 158, 11, 0.05);"><td><strong><i class="fa-solid fa-children" style="color: var(--gold); margin-right: 6px;"></i> កុមារ និងទារកសរុបទាំងអស់ (០-១៧ ឆ្នាំ)</strong></td><td class="text-right"><strong style="color: var(--gold-light); font-size: 1.1rem;">{edu_obj.get("total_children", 0)}</strong> នាក់</td></tr>
+    """
+    content = re.sub(r'<tbody id="table-edu-breakdown">.*?</tbody>', f'<tbody id="table-edu-breakdown">{edu_rows}</tbody>', content, flags=re.DOTALL)
+
+    # 5. Inject Dropouts Breakdown Rows
+    d_groups = edu_obj.get("dropout_groups", {})
+    g0_6 = d_groups.get("grades_0_6", 47)
+    g7_9 = d_groups.get("grades_7_9", 0)
+    g10_12 = d_groups.get("grades_10_12", 1)
+    drop_rows = f"""
+      <tr style="background: rgba(239, 68, 68, 0.04);">
+        <td><div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;"><span class="badge-tag dropout" style="font-weight: 700; min-width: 90px; text-align: center; font-size: 0.8rem;">ថ្នាក់ 0 ដល់ 6</span><span style="font-size: 0.88rem; color: #e2e8f0; font-weight: 500;">(មត្តេយ្យ & បឋមសិក្សា)</span></div></td>
+        <td class="text-right"><strong style="font-size: 1.05rem; color: #fb7185;">{g0_6}</strong> នាក់</td>
+      </tr>
+      <tr style="background: rgba(239, 68, 68, 0.04);">
+        <td><div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;"><span class="badge-tag dropout" style="font-weight: 700; min-width: 90px; text-align: center; font-size: 0.8rem;">ថ្នាក់ 7 ដល់ 9</span><span style="font-size: 0.88rem; color: #e2e8f0; font-weight: 500;">(កម្រិតអនុវិទ្យាល័យ)</span></div></td>
+        <td class="text-right"><strong style="font-size: 1.05rem; color: #fb7185;">{g7_9}</strong> នាក់</td>
+      </tr>
+      <tr style="background: rgba(239, 68, 68, 0.04);">
+        <td><div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;"><span class="badge-tag dropout" style="font-weight: 700; min-width: 90px; text-align: center; font-size: 0.8rem;">ថ្នាក់ 10 ដល់ 12</span><span style="font-size: 0.88rem; color: #e2e8f0; font-weight: 500;">(កម្រិតវិទ្យាល័យ)</span></div></td>
+        <td class="text-right"><strong style="font-size: 1.05rem; color: #fb7185;">{g10_12}</strong> នាក់</td>
+      </tr>
+    """
+    content = re.sub(r'<tbody id="table-dropouts-breakdown">.*?</tbody>', f'<tbody id="table-dropouts-breakdown">{drop_rows}</tbody>', content, flags=re.DOTALL)
+
+    # 6. Inject First 15 Families into families-table-tbody
+    poor_badge_map = {
+        "IDPOOR_1": '<span class="badge-tag poor1">ក្រ១ (IDPoor 1)</span>',
+        "IDPOOR_2": '<span class="badge-tag poor2">ក្រ២ (IDPoor 2)</span>',
+        "GENERAL": '<span class="badge-tag general">ទូទៅ</span>'
+    }
+    fam_rows = []
+    for idx, f in enumerate(fams[:15]):
+        p_badge = poor_badge_map.get(f.get("poor_category"), f.get("poor_category", "-"))
+        fam_rows.append(f"""
+          <tr>
+            <td class="text-center">{idx + 1}</td>
+            <td><strong style="color: #60a5fa;">{f.get("family_code")}</strong></td>
+            <td><strong>{f.get("head_name") or "គ្មាន"}</strong></td>
+            <td>{p_badge}</td>
+            <td>{f.get("village_name_kh") or "-"}</td>
+            <td class="text-center"><strong>{f.get("members_count", 0)}</strong> នាក់</td>
+            <td><span class="badge-tag approved"><i class="fa-solid fa-check"></i> បានអនុម័ត</span></td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline btn-view-family" data-id="{f.get('id')}" title="ពិនិត្យមើលលម្អិត">
+                <i class="fa-solid fa-eye"></i> មើល
+              </button>
+            </td>
+          </tr>
+        """)
+    if fam_rows:
+        fam_tbody = "".join(fam_rows)
+        content = re.sub(r'<tbody id="families-table-tbody">.*?</tbody>', f'<tbody id="families-table-tbody">{fam_tbody}</tbody>', content, flags=re.DOTALL)
+
+    return content
+
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_home(request: Request, db: Session = Depends(get_db)):
     headers = {
@@ -102,25 +234,14 @@ async def serve_home(request: Request, db: Session = Depends(get_db)):
         with open(index_file, "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Preload families and dashboard stats to guarantee 0ms instant display without empty states
         try:
-            import json
             from app.api.families import list_families
             from app.api.reports import get_dashboard_stats
             preloaded_families = list_families(limit=1000, db=db)
             preloaded_stats = get_dashboard_stats(db=db)
-            fams_json = json.dumps(preloaded_families, default=str).replace("</script>", "<\\/script>")
-            stats_json = json.dumps(preloaded_stats, default=str).replace("</script>", "<\\/script>")
-            preload_tag = (
-                f'<script id="server-preloaded-data">\n'
-                f'  window.__PRELOADED_FAMILIES__ = {fams_json};\n'
-                f'  window.__PRELOADED_STATS__ = {stats_json};\n'
-                f'</script>\n'
-            )
-            if "</head>" in content:
-                content = content.replace("</head>", f"{preload_tag}</head>", 1)
+            content = render_ssr_page(content, preloaded_families, preloaded_stats)
         except Exception as e:
-            print(f"Warning: Failed to inject preloaded data in serve_home: {e}")
+            print(f"Warning: Failed to render SSR data in serve_home: {e}")
 
         return HTMLResponse(content=content, headers=headers)
     if templates:
