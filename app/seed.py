@@ -9,107 +9,34 @@ from app.api.families import calculate_age
 def init_db_and_seed(force: bool = False):
     Base.metadata.create_all(bind=engine)
 
-    # Automatic Schema Migration for newly added columns
+    # Automatic Schema Migration for newly added columns with dialect-specific syntax
     try:
         from sqlalchemy import text
-        with engine.connect() as conn:
-            # users.profile_picture
+        is_pg = engine.dialect.name == "postgresql"
+        migrations = [
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture TEXT" if is_pg else "ALTER TABLE users ADD COLUMN profile_picture TEXT",
+            "ALTER TABLE families ADD COLUMN IF NOT EXISTS offline_client_id VARCHAR(100)" if is_pg else "ALTER TABLE families ADD COLUMN offline_client_id VARCHAR(100)",
+            "ALTER TABLE members ADD COLUMN IF NOT EXISTS is_studying BOOLEAN DEFAULT TRUE" if is_pg else "ALTER TABLE members ADD COLUMN is_studying BOOLEAN DEFAULT 1",
+            "ALTER TABLE members ADD COLUMN IF NOT EXISTS dropout_grade VARCHAR(20)" if is_pg else "ALTER TABLE members ADD COLUMN dropout_grade VARCHAR(20)",
+            "ALTER TABLE families ADD COLUMN IF NOT EXISTS latitude FLOAT" if is_pg else "ALTER TABLE families ADD COLUMN latitude FLOAT",
+            "ALTER TABLE families ADD COLUMN IF NOT EXISTS longitude FLOAT" if is_pg else "ALTER TABLE families ADD COLUMN longitude FLOAT",
+            "ALTER TABLE villages ADD COLUMN IF NOT EXISTS latitude FLOAT" if is_pg else "ALTER TABLE villages ADD COLUMN latitude FLOAT",
+            "ALTER TABLE villages ADD COLUMN IF NOT EXISTS longitude FLOAT" if is_pg else "ALTER TABLE villages ADD COLUMN longitude FLOAT",
+            "UPDATE members SET dropout_status = 'NONE', dropout_grade = NULL WHERE education_status = 'NONE' AND (dropout_status != 'NONE' OR dropout_grade IS NOT NULL)",
+            "UPDATE villages SET latitude = 13.5852, longitude = 103.7125 WHERE code = '17010307' AND latitude IS NULL",
+            """
+            UPDATE families 
+            SET latitude = 13.5852 + (((id * 7) % 13) - 6) * 0.0009,
+                longitude = 103.7125 + (((id * 5) % 11) - 5) * 0.0011
+            WHERE latitude IS NULL OR longitude IS NULL
+            """,
+            "UPDATE users SET assigned_geo_code = '17010307' WHERE username = 'collector' AND (assigned_geo_code IS NULL OR assigned_geo_code = '17010312')"
+        ]
+        for sql in migrations:
             try:
-                conn.execute(text("ALTER TABLE users ADD COLUMN profile_picture TEXT"))
-                conn.commit()
-            except Exception:
-                pass
-
-            # families.offline_client_id
-            try:
-                conn.execute(text("ALTER TABLE families ADD COLUMN offline_client_id VARCHAR(100)"))
-                conn.commit()
-            except Exception:
-                pass
-
-            # members.is_studying
-            try:
-                conn.execute(text("ALTER TABLE members ADD COLUMN is_studying BOOLEAN DEFAULT 1"))
-                conn.commit()
-            except Exception:
-                pass
-
-            # members.dropout_grade
-            try:
-                conn.execute(text("ALTER TABLE members ADD COLUMN dropout_grade VARCHAR(20)"))
-                conn.commit()
-            except Exception:
-                pass
-
-            # Data consistency fix: ensure members with education_status == 'NONE' have dropout_status = 'NONE' and dropout_grade = NULL
-            try:
-                conn.execute(text("UPDATE members SET dropout_status = 'NONE', dropout_grade = NULL WHERE education_status = 'NONE' AND (dropout_status != 'NONE' OR dropout_grade IS NOT NULL)"))
-                conn.commit()
-            except Exception:
-                pass
-
-            # families.latitude & families.longitude
-            try:
-                conn.execute(text("ALTER TABLE families ADD COLUMN latitude FLOAT"))
-                conn.commit()
-            except Exception:
-                pass
-            try:
-                conn.execute(text("ALTER TABLE families ADD COLUMN longitude FLOAT"))
-                conn.commit()
-            except Exception:
-                pass
-
-            # villages.latitude & villages.longitude
-            try:
-                conn.execute(text("ALTER TABLE villages ADD COLUMN latitude FLOAT"))
-                conn.commit()
-            except Exception:
-                pass
-            try:
-                conn.execute(text("ALTER TABLE villages ADD COLUMN longitude FLOAT"))
-                conn.commit()
-            except Exception:
-                pass
-
-            # Update village default coordinates
-            try:
-                conn.execute(text("UPDATE villages SET latitude = 13.5852, longitude = 103.7125 WHERE code = '17010307' AND latitude IS NULL"))
-                conn.commit()
-            except Exception:
-                pass
-
-            # Distribute existing families without coordinates around Prasat Trav Village center
-            try:
-                conn.execute(text("""
-                    UPDATE families 
-                    SET latitude = 13.5852 + (((id * 7) % 13) - 6) * 0.0009,
-                        longitude = 103.7125 + (((id * 5) % 11) - 5) * 0.0011
-                    WHERE latitude IS NULL OR longitude IS NULL
-                """))
-                conn.commit()
-            except Exception:
-                pass
-
-            # Fix collector assigned_geo_code if pointing to obsolete code
-            try:
-                conn.execute(text("UPDATE users SET assigned_geo_code = '17010307' WHERE username = 'collector' AND (assigned_geo_code IS NULL OR assigned_geo_code = '17010312')"))
-                conn.commit()
-            except Exception:
-                pass
-
-            # Ensure balanced poverty categories if IDPOOR_1 is missing
-            try:
-                conn.execute(text("""
-                    UPDATE families 
-                    SET poor_category = CASE 
-                        WHEN id % 3 = 0 THEN 'IDPOOR_1'
-                        WHEN id % 3 = 1 THEN 'IDPOOR_2'
-                        ELSE 'GENERAL'
-                    END
-                    WHERE (SELECT COUNT(*) FROM families WHERE poor_category = 'IDPOOR_1') = 0
-                """))
-                conn.commit()
+                with engine.connect() as conn:
+                    conn.execute(text(sql))
+                    conn.commit()
             except Exception:
                 pass
     except Exception as e:
@@ -227,9 +154,57 @@ def init_db_and_seed(force: bool = False):
         first_v = db.query(Village).first()
         target_village_id = first_v.id if first_v else 1
 
-    # 3. Seed Sample Families & Members if no families exist
+    # 3. Seed Sample Families & Members if database has fewer than 10 families
+    if db.query(Family).count() < 10:
+        import os
+        import json
+        json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "sample_census_51.json")
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, "r", encoding="utf-8") as fp:
+                    full_fams = json.load(fp)
+                for f_data in full_fams:
+                    if db.query(Family).filter(Family.family_code == f_data["family_code"]).first():
+                        continue
+                    fam = Family(
+                        village_id=target_village_id,
+                        family_code=f_data["family_code"],
+                        poor_category=f_data["poor_category"],
+                        address_note=f_data["address_note"],
+                        latitude=f_data.get("latitude"),
+                        longitude=f_data.get("longitude"),
+                        status=f_data.get("status", "APPROVED"),
+                        created_by_id=collector_user.id if collector_user else None
+                    )
+                    db.add(fam)
+                    db.flush()
+                    for m_data in f_data["members"]:
+                        dob_val = datetime.date.fromisoformat(m_data["dob"]) if isinstance(m_data["dob"], str) else m_data["dob"]
+                        age = calculate_age(dob_val)
+                        m = Member(
+                            family_id=fam.id,
+                            full_name=m_data["full_name"],
+                            gender=m_data["gender"],
+                            nationality=m_data.get("nationality", "ខ្មែរ"),
+                            dob=dob_val,
+                            age=age,
+                            relation=m_data["relation"],
+                            education_status=m_data["education_status"],
+                            dropout_status=m_data["dropout_status"],
+                            dropout_grade=m_data.get("dropout_grade"),
+                            birth_cert=str(m_data.get("birth_cert", "0")),
+                            disability=m_data.get("disability", "គ្មាន"),
+                            occupation=m_data.get("occupation", ""),
+                            current_address=m_data.get("current_address", "")
+                        )
+                        db.add(m)
+                db.commit()
+                print(f"[Seed] Successfully seeded {len(full_fams)} families from sample_census_51.json")
+            except Exception as e:
+                print(f"[Seed] Error seeding from JSON: {e}")
+
     if db.query(Family).count() > 0:
-        print("Database already contains families, skipping sample families seed.")
+        print("Database already contains families, skipping fallback seed.")
         db.close()
         return
 
