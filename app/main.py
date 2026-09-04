@@ -22,18 +22,14 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Initialize database schema and migrations on module load (critical for serverless / Vercel)
-try:
-    init_db_and_seed()
-except Exception as e:
-    print(f"Warning: Initial DB seed/migration error: {e}")
-
+# Database startup event (guarded for local vs serverless)
 @app.on_event("startup")
 def startup_event():
-    try:
-        init_db_and_seed()
-    except Exception as e:
-        print(f"Warning: Database initialization error: {e}")
+    if not os.getenv("VERCEL"):
+        try:
+            init_db_and_seed()
+        except Exception as e:
+            print(f"Warning: Database initialization error: {e}")
 
 # CORS configuration
 app.add_middleware(
