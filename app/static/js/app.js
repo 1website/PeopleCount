@@ -459,6 +459,17 @@ window.refreshCurrentView = function() {
 
 window.reloadFamiliesData = async function() {
   localStorage.removeItem("cached_families_list");
+  localStorage.removeItem("cached_dashboard_stats");
+
+  if ("caches" in window) {
+    try {
+      const keys = await caches.keys();
+      for (const k of keys) {
+        await caches.delete(k);
+      }
+    } catch (e) {}
+  }
+
   const sInput = document.getElementById("filter-list-search");
   const pSelect = document.getElementById("filter-list-poor");
   const stSelect = document.getElementById("filter-list-status");
@@ -477,6 +488,15 @@ window.reloadFamiliesData = async function() {
 window.refreshAllData = async function() {
   localStorage.removeItem("cached_families_list");
   localStorage.removeItem("cached_dashboard_stats");
+
+  if ("caches" in window) {
+    try {
+      const keys = await caches.keys();
+      for (const k of keys) {
+        await caches.delete(k);
+      }
+    } catch (e) {}
+  }
 
   const toast = document.createElement("div");
   toast.className = "sync-toast info";
