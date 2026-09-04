@@ -40,6 +40,13 @@ def init_db_and_seed(force: bool = False):
                 conn.commit()
             except Exception:
                 pass
+
+            # Data consistency fix: ensure members with education_status == 'NONE' have dropout_status = 'NONE' and dropout_grade = NULL
+            try:
+                conn.execute(text("UPDATE members SET dropout_status = 'NONE', dropout_grade = NULL WHERE education_status = 'NONE' AND (dropout_status != 'NONE' OR dropout_grade IS NOT NULL)"))
+                conn.commit()
+            except Exception:
+                pass
     except Exception as e:
         print(f"Migration error: {e}")
 
@@ -182,7 +189,7 @@ def init_db_and_seed(force: bool = False):
                 {
                     "full_name": "សុខ មុនីរត្ន", "gender": "FEMALE", "nationality": "ខ្មែរ",
                     "dob": datetime.date(2026, 3, 1), "relation": "CHILD",
-                    "edu": "NONE", "dropout": "ACTIVE", "grade": None,
+                    "edu": "NONE", "dropout": "NONE", "grade": None,
                     "birth_cert": True, "occupation": "ទារក", "disability": "គ្មាន",
                     "address": "ភូមិប្រាសាទត្រាវ ឃុំគោកដូង"
                 }
@@ -198,7 +205,7 @@ def init_db_and_seed(force: bool = False):
                 {
                     "full_name": "គង់ សារ៉ាត់", "gender": "MALE", "nationality": "ខ្មែរ",
                     "dob": datetime.date(1978, 11, 12), "relation": "HEAD",
-                    "edu": "NONE", "dropout": "ACTIVE", "grade": None,
+                    "edu": "NONE", "dropout": "NONE", "grade": None,
                     "birth_cert": True, "occupation": "កសិករ", "disability": "គ្មាន",
                     "address": "ភូមិប្រាសាទត្រាវ"
                 },
@@ -235,7 +242,7 @@ def init_db_and_seed(force: bool = False):
                 {
                     "full_name": "អ៊ុំ សំបូរ", "gender": "FEMALE", "nationality": "ខ្មែរ",
                     "dob": datetime.date(1965, 3, 14), "relation": "HEAD",
-                    "edu": "NONE", "dropout": "ACTIVE", "grade": None,
+                    "edu": "NONE", "dropout": "NONE", "grade": None,
                     "birth_cert": True, "occupation": "លក់ដូរតាមផ្ទះ", "disability": "ភ្នែកម្ខាងខ្សោយ",
                     "address": "ភូមិប្រាសាទត្រាវ"
                 },

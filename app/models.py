@@ -122,7 +122,7 @@ class Member(Base):
     # Education & School Status:
     # 'NONE' (មិនបានរៀន), 'PRIMARY' (ចូលរៀនបឋម), 'SECONDARY' (ចូលរៀនមធ្យម), 'HIGHER' (ឧត្តមសិក្សា)
     education_status = Column(String(30), default="PRIMARY", nullable=False)
-    # Dropout status: 'ACTIVE' (កំពុងរៀន), 'DROPOUT' (បោះបង់ការសិក្សា), 'SUSPENDED' (បង្អង់ការសិក្សា)
+    # Dropout status: 'ACTIVE' (កំពុងរៀន), 'DROPOUT' (បោះបង់ការសិក្សា), 'SUSPENDED' (បង្អង់ការសិក្សា), 'COMPLETED' (បានបញ្ចប់), 'NONE' (មិនបានរៀន)
     dropout_status = Column(String(30), default="ACTIVE", nullable=False)
     dropout_grade = Column(String(50), nullable=True)  # កម្រិតថ្នាក់ដែលបោះបង់ e.g. ថ្នាក់ទី ៧
     

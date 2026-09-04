@@ -667,7 +667,7 @@ function addMemberRow(initialData = {}) {
   const isFirst = container.children.length === 0;
   const defaultRelation = initialData.relation || (isFirst ? "HEAD" : "CHILD");
   const defaultEdu = initialData.education_status || "PRIMARY";
-  const defaultDropout = initialData.dropout_status || "ACTIVE";
+  const defaultDropout = (defaultEdu === "NONE" || initialData.dropout_status === "NONE") ? "NONE" : (initialData.dropout_status || "ACTIVE");
   const birthCertVal = (initialData.birth_cert !== undefined && initialData.birth_cert !== null) ? String(initialData.birth_cert).replace(/[^0-9]/g, "") || "0" : "0";
 
   card.innerHTML = `
@@ -729,7 +729,7 @@ function addMemberRow(initialData = {}) {
       <div class="member-card-field-group member-dropout-group" style="${defaultEdu === 'NONE' ? 'display: none;' : ''}">
         <label>ស្ថានភាពសិក្សា និងកម្រិតថ្នាក់</label>
         <select class="form-select member-dropout" style="width: 100%;">
-          <option value="ACTIVE" ${defaultDropout === 'ACTIVE' ? 'selected' : ''}>កំពុងរៀន</option>
+          <option value="ACTIVE" ${defaultDropout === 'ACTIVE' || defaultDropout === 'NONE' ? 'selected' : ''}>កំពុងរៀន</option>
           <option value="DROPOUT" ${defaultDropout === 'DROPOUT' ? 'selected' : ''}>បោះបង់ការសិក្សា</option>
           <option value="COMPLETED" ${defaultDropout === 'COMPLETED' ? 'selected' : ''}>បានបញ្ចប់</option>
         </select>
@@ -917,6 +917,9 @@ async function handleFamilyFormSubmit(e) {
       } else {
         dropoutGrade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
       }
+    } else {
+      dropout = "NONE";
+      dropoutGrade = null;
     }
     const rawBc = toLatinDigits(card.querySelector(".member-birthcert")?.value || "0");
     const birthCert = rawBc.replace(/[^0-9]/g, "") || "0";
@@ -1299,11 +1302,13 @@ async function openFamilyDetailModal(familyId) {
                 <td><span class="badge-tag general">${relationMap[m.relation] || m.relation}</span></td>
                 <td>${eduMap[m.education_status] || m.education_status}</td>
                 <td>
-                  ${m.dropout_status === 'DROPOUT' ? 
-                    `<span class="badge-tag dropout">បោះបង់ (${m.dropout_grade || 'មិនបញ្ជាក់'})</span>` : 
-                    (m.dropout_status === 'COMPLETED' ?
-                      `<span class="badge-tag completed">បានបញ្ចប់${m.dropout_grade ? ` (${m.dropout_grade})` : ''}</span>` :
-                      (m.dropout_grade ? `<span class="badge-tag approved">កំពុងរៀន (${m.dropout_grade})</span>` : `<span class="badge-tag approved">កំពុងរៀន</span>`))}
+                  ${(m.education_status === 'NONE' || m.dropout_status === 'NONE') ?
+                    `<span class="badge-tag none">មិនបានរៀន</span>` :
+                    (m.dropout_status === 'DROPOUT' ? 
+                      `<span class="badge-tag dropout">បោះបង់ (${m.dropout_grade || 'មិនបញ្ជាក់'})</span>` : 
+                      (m.dropout_status === 'COMPLETED' ?
+                        `<span class="badge-tag completed">បានបញ្ចប់${m.dropout_grade ? ` (${m.dropout_grade})` : ''}</span>` :
+                        (m.dropout_grade ? `<span class="badge-tag approved">កំពុងរៀន (${m.dropout_grade})</span>` : `<span class="badge-tag approved">កំពុងរៀន</span>`)))}
                 </td>
                 <td class="text-center">
                   <span class="badge-tag ${m.birth_cert && String(m.birth_cert).trim() !== '0' && String(m.birth_cert).trim() !== 'false' ? 'cert-yes' : 'cert-no'}">
@@ -1507,9 +1512,9 @@ function openEditMemberModal(familyId, familyCode, member) {
   document.getElementById("single-member-relation").value = member.relation || "CHILD";
   document.getElementById("single-member-edu").value = member.education_status || "PRIMARY";
   updateSingleMemberEduVisibility();
-  const memberDropout = member.dropout_status || "ACTIVE";
+  const memberDropout = (member.education_status === "NONE" || member.dropout_status === "NONE") ? "ACTIVE" : (member.dropout_status || "ACTIVE");
   document.getElementById("single-member-dropout").value = memberDropout;
-  document.getElementById("single-member-grade").value = member.dropout_grade ? toLatinDigits(member.dropout_grade) : "";
+  document.getElementById("single-member-grade").value = (member.education_status !== "NONE" && member.dropout_grade) ? toLatinDigits(member.dropout_grade) : "";
   const smGradeInput = document.getElementById("single-member-grade");
   const smGradeHelp = document.getElementById("single-member-grade-help");
   if (memberDropout === "DROPOUT") {
@@ -1563,6 +1568,9 @@ async function handleSingleMemberFormSubmit(e) {
     } else {
       grade = rawGrade.replace(/[^0-9]/g, "").trim() || null;
     }
+  } else {
+    dropout = "NONE";
+    grade = null;
   }
   const occupation = document.getElementById("single-member-occupation")?.value.trim() || "";
   const rawBc = toLatinDigits(document.getElementById("single-member-birthcert")?.value || "0");

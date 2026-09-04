@@ -137,6 +137,8 @@ def create_family(
 
     for m_data in data.members:
         calculated_age = calculate_age(m_data.dob)
+        m_dropout_status = "NONE" if m_data.education_status == "NONE" else m_data.dropout_status
+        m_dropout_grade = None if m_data.education_status == "NONE" else m_data.dropout_grade
         member = Member(
             family_id=new_family.id,
             full_name=m_data.full_name,
@@ -146,8 +148,8 @@ def create_family(
             age=calculated_age,
             relation=m_data.relation,
             education_status=m_data.education_status,
-            dropout_status=m_data.dropout_status,
-            dropout_grade=m_data.dropout_grade,
+            dropout_status=m_dropout_status,
+            dropout_grade=m_dropout_grade,
             birth_cert=m_data.birth_cert,
             disability=m_data.disability,
             occupation=m_data.occupation,
@@ -241,6 +243,8 @@ def add_member(
         raise HTTPException(status_code=404, detail="រកមិនឃើញគ្រួសារ (Family not found)")
         
     calculated_age = calculate_age(data.dob)
+    m_dropout_status = "NONE" if data.education_status == "NONE" else data.dropout_status
+    m_dropout_grade = None if data.education_status == "NONE" else data.dropout_grade
     new_member = Member(
         family_id=family_id,
         full_name=data.full_name,
@@ -250,8 +254,8 @@ def add_member(
         age=calculated_age,
         relation=data.relation,
         education_status=data.education_status,
-        dropout_status=data.dropout_status,
-        dropout_grade=data.dropout_grade,
+        dropout_status=m_dropout_status,
+        dropout_grade=m_dropout_grade,
         birth_cert=data.birth_cert,
         disability=data.disability,
         occupation=data.occupation,
@@ -282,8 +286,8 @@ def update_member(
     member.age = calculated_age
     member.relation = data.relation
     member.education_status = data.education_status
-    member.dropout_status = data.dropout_status
-    member.dropout_grade = data.dropout_grade
+    member.dropout_status = "NONE" if data.education_status == "NONE" else data.dropout_status
+    member.dropout_grade = None if data.education_status == "NONE" else data.dropout_grade
     member.birth_cert = data.birth_cert
     member.disability = data.disability
     member.occupation = data.occupation

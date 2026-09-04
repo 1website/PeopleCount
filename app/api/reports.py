@@ -315,7 +315,7 @@ def export_excel_report(
         "PARENT": "ឪពុក/ម្តាយ", "RELATIVE": "សាច់ញាតិ", "OTHER": "ផ្សេងៗ"
     }
     edu_map = {"NONE": "មិនបានរៀន", "PRIMARY": "បឋមសិក្សា", "SECONDARY": "មធ្យមសិក្សា", "HIGHER": "ឧត្តមសិក្សា"}
-    dropout_map = {"ACTIVE": "កំពុងរៀន", "DROPOUT": "បោះបង់", "SUSPENDED": "បង្អង់", "COMPLETED": "បានបញ្ចប់"}
+    dropout_map = {"ACTIVE": "កំពុងរៀន", "DROPOUT": "បោះបង់", "SUSPENDED": "បង្អង់", "COMPLETED": "បានបញ្ចប់", "NONE": "មិនបានរៀន"}
 
     for fam in families:
         vill_name = f"{fam.village.name_kh} ({fam.village.commune.name_kh})" if fam.village else "N/A"
@@ -326,7 +326,9 @@ def export_excel_report(
             birth_cert_val = str(member.birth_cert).strip() if member.birth_cert is not None else "0"
             birth_cert_kh = birth_cert_val if birth_cert_val not in ["0", "False", "None", ""] else "0 (គ្មាន)"
             edu_kh = edu_map.get(member.education_status, member.education_status)
-            if member.dropout_status == "DROPOUT" and member.dropout_grade:
+            if member.education_status == "NONE" or member.dropout_status == "NONE":
+                study_status_kh = "មិនបានរៀន"
+            elif member.dropout_status == "DROPOUT" and member.dropout_grade:
                 study_status_kh = f"បោះបង់ ({khmer_to_latin_digits(member.dropout_grade)})"
             elif member.dropout_status == "COMPLETED" and member.dropout_grade:
                 study_status_kh = f"បានបញ្ចប់ ({khmer_to_latin_digits(member.dropout_grade)})"

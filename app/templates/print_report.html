@@ -143,9 +143,10 @@
 
           for (const m of detail.members) {
             const cleanGrade = toLatinDigits(m.dropout_grade);
-            let study = m.dropout_status === "DROPOUT" ? `បោះបង់ (${cleanGrade || ''})` : 
+            let study = (m.education_status === "NONE" || m.dropout_status === "NONE") ? "មិនបានរៀន" :
+                        (m.dropout_status === "DROPOUT" ? `បោះបង់ (${cleanGrade || ''})` : 
                         m.dropout_status === "COMPLETED" ? (cleanGrade ? `បានបញ្ចប់ (${cleanGrade})` : "បានបញ្ចប់") :
-                        (cleanGrade ? `កំពុងរៀន (${cleanGrade})` : "កំពុងរៀន");
+                        (cleanGrade ? `កំពុងរៀន (${cleanGrade})` : "កំពុងរៀន"));
             rowsHtml += `
               <tr>
                 <td>${seq}</td>

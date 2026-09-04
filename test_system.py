@@ -154,6 +154,29 @@ def test_family_and_member_registration():
     assert comp_m["dropout_grade"] == "បរិញ្ញាបត្រ"
     assert comp_m["birth_cert"] == "98765"  # Khmer digits '៩៨៧៦៥' successfully normalized to '98765'
 
+    # Verify adding a member with NONE education status automatically sets dropout_status to NONE and dropout_grade to None
+    none_edu_payload = {
+        "full_name": "Duch Sokhon Toddler",
+        "gender": "FEMALE",
+        "nationality": "Khmer",
+        "dob": "2024-01-01",
+        "relation": "CHILD",
+        "education_status": "NONE",
+        "dropout_status": "ACTIVE",  # Should be normalized to NONE
+        "dropout_grade": "5",       # Should be cleared to None
+        "birth_cert": "208",
+        "disability": "None",
+        "occupation": "None",
+        "current_address": ""
+    }
+    none_res = client.post(f"/api/families/{created_fam['id']}/members", json=none_edu_payload, headers=headers)
+    assert none_res.status_code == 200
+    none_m = none_res.json()
+    assert none_m["education_status"] == "NONE"
+    assert none_m["dropout_status"] == "NONE"
+    assert none_m["dropout_grade"] is None
+    client.delete(f"/api/families/members/{none_m['id']}", headers=headers)
+
     # Verify deleting the added members from the family
     client.delete(f"/api/families/members/{comp_m['id']}", headers=headers)
     del_m_res = client.delete(f"/api/families/members/{added_m['id']}", headers=headers)

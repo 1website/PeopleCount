@@ -1,7 +1,7 @@
 import re
 from typing import List, Optional
 from datetime import date, datetime
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # --- User & Auth Schemas ---
@@ -176,6 +176,13 @@ class MemberBase(BaseModel):
         for kh, lat in khmer_to_latin.items():
             s = s.replace(kh, lat)
         return s.strip() or None
+
+    @model_validator(mode="after")
+    def validate_education_and_dropout(self):
+        if self.education_status == "NONE":
+            self.dropout_status = "NONE"
+            self.dropout_grade = None
+        return self
 
 
 class MemberCreate(MemberBase):
