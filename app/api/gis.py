@@ -5,7 +5,7 @@ from sqlalchemy import or_
 
 from app.database import get_db
 from app.models import Family, Member, Village, Commune, District, Province, User
-from app.auth import require_user
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/gis", tags=["GIS & Technology"])
 
@@ -16,7 +16,7 @@ def get_gis_map_data(
     poor_category: Optional[str] = None,
     search: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_user)
+    current_user: Optional[User] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Retrieve GIS mapping data for families, poverty hotspots, and geographic distribution.
@@ -24,8 +24,8 @@ def get_gis_map_data(
     """
     query = db.query(Family)
 
-    # Apply role-based geographic access control
-    if current_user.role != "ADMIN" and current_user.assigned_level != "ALL" and current_user.assigned_geo_code:
+    # Apply role-based geographic access control if user is logged in
+    if current_user and current_user.role != "ADMIN" and current_user.assigned_level != "ALL" and current_user.assigned_geo_code:
         lvl = current_user.assigned_level
         code = current_user.assigned_geo_code
         if lvl == "PROVINCE":
